@@ -221,7 +221,7 @@ async function main() {
      ================================================================== */
   const issueId = 'DLFIX-' + Date.now()
   console.log('\n--- A. DEEP-LINK RACE ---')
-  const A = await connect(APP + '/bim/REG-002?issue=' + issueId)
+  const A = await connect(APP + '/bim/' + REG + '?issue=' + issueId)
   const ready = await waitFor(A.cdp, `document.body && document.body.innerText.includes('MODEL READY')`, 120, 700)
   check('A. model reached MODEL READY', Boolean(ready))
 
@@ -252,7 +252,7 @@ async function main() {
      B. SNAPSHOT-RESET / FORM WIPE (external REST write while drafting)
      ================================================================== */
   console.log('\n--- B. SNAPSHOT RESET ---')
-  const B = await connect(APP + '/bim/REG-002')
+  const B = await connect(APP + '/bim/' + REG)
   await waitFor(B.cdp, `document.body && document.body.innerText.includes('MODEL READY')`, 120, 700)
 
   const selKeyB = await selectElement(B.cdp)
@@ -357,7 +357,7 @@ async function main() {
     return t.startsWith('DLFIX-') || t.startsWith('SNAP-') || t.startsWith('FIX-')
   })
   const residueViews = (await fsList(FS_VIEWS)).length
-  console.log('residue todos in REG-002:', residueTodos.length, '| views:', residueViews)
+  console.log('residue todos in ' + REG + ':', residueTodos.length, '| views:', residueViews)
 
   try { server.kill() } catch {}
   freePort(8741)

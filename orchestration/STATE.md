@@ -33,3 +33,5 @@ Default UX styling = "Chokepoint" design system produced in wave 0. Promote to l
 - FIX ROUND DONE (coder run f2d627cc): all 6 QA defects fixed + verified (node --check clean, 60 store assertions, Chrome CDP pass). Committed 7d37f16.
 - DEPLOYED: Firebase Hosting https://marvin-dev-c4ca4.web.app — all 3 pages + assets 200 (cleanUrls 301s resolve).
 - Submission form found: https://thatopen.notion.site/3b1e915dff1e80eb9d0bfdd3276f4298 — fields: Community Profile URL, Modules (checkboxes), GitHub Repository URL, Deployed App URL, comments.
+- SUBMITTED: exams 1+2 form sent successfully ("Your response has been submitted") with community profile https://people.thatopen.com/u/c7737e77, GitHub https://github.com/theagentmarvin/toe-master-issuetrack, app https://marvin-dev-c4ca4.web.app. Wave A CLOSED.
+- Next: Wave B (exam 3, React + Firestore) — needs Firestore enabled on marvin-dev-c4ca4 (confirmed indexes API works).

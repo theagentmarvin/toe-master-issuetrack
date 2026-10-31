@@ -1,9 +1,9 @@
 {
-  "name": "issuetrack-v3-react",
+  "name": "issuetrack-v4-bim",
   "private": true,
-  "version": "3.0.0",
+  "version": "4.0.0",
   "type": "module",
-  "description": "IssueTrack — Wave B (Exam 3): React + Firebase reactive issue tracker",
+  "description": "IssueTrack — Wave C (Exam 4): That Open Components BIM viewer",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -15,7 +15,8 @@
     "firebase": "^10.14.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.30.0"
+    "react-router-dom": "^6.30.0",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

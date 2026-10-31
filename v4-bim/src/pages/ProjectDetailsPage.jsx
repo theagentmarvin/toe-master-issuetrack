@@ -67,6 +67,9 @@ export default function ProjectDetailsPage() {
             <span className="it-muted-text it-num">{project.id}</span>
           </div>
         </div>
+        <Link className="it-btn it-btn-primary" to={'/bim/' + project.id}>
+          ◈ OPEN BIM VIEWER
+        </Link>
         <button
           className="it-btn"
           type="button"

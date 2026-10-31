@@ -25,6 +25,9 @@ export default function ProjectCard({ project, todos = [], lead, onEdit, onDelet
         <Link className="it-card-open" to={'/project/' + project.id}>
           ↗ OPEN
         </Link>
+        <Link className="it-card-open" to={'/bim/' + project.id}>
+          ◈ BIM
+        </Link>
       </div>
 
       <div className="it-project-body">

@@ -17,6 +17,9 @@ function actionFor(pathname) {
   if (pathname.startsWith('/project/')) {
     return { label: '+ NEW ISSUE', target: 'btn-new-issue', section: 'REGISTER DETAIL' }
   }
+  if (pathname.startsWith('/bim/')) {
+    return { label: '◈ 3D VIEWPORT', target: '', section: 'BIM' }
+  }
   if (pathname.startsWith('/people')) {
     return { label: '+ NEW PERSON', target: 'btn-new-person', section: 'PEOPLE' }
   }
@@ -44,7 +47,12 @@ export default function Layout({ children }) {
         <span className="it-meta it-num">
           {todayISO()} &nbsp;·&nbsp; {projects.length} REGISTERS &nbsp;·&nbsp; {people.length} PEOPLE
         </span>
-        <button className="it-btn it-btn-primary" type="button" onClick={runPrimaryAction}>
+        <button
+          className="it-btn it-btn-primary"
+          type="button"
+          onClick={runPrimaryAction}
+          disabled={!action.target}
+        >
           {action.label}
         </button>
       </header>

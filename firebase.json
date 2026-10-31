@@ -1,14 +1,12 @@
 {
   "hosting": [
     {
-      "target": "v2",
-      "public": "app",
       "site": "marvin-dev-c4ca4",
+      "public": "app",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
       "cleanUrls": true
     },
     {
-      "target": "v3",
       "site": "issuetrack-v3",
       "public": "v3-react/dist",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],

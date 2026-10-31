@@ -130,3 +130,58 @@ Fix those two plus the pin-cluster blindness (#4) and this becomes SHIP-WITH-FIX
 4. #12–#15 polish
 
 *Test residue note: the shared demo now contains three review pins on slab #5105 (`UX REVIEW CRACK L2`, `UX CLUSTER MARKER A/B`, register REG-001) — left in place deliberately as they document the findings; purge via the register DELETE controls if the demo is reset.*
+
+---
+
+# Round 2 — Revalidation of the fix build
+
+**Build:** `index-Bp67uzNc.js` (verified in DOM) · https://issuetrack-v4.web.app · 2026-10-31
+**Method:** fresh CDP tabs on :18800 (closed after), review-only, screenshots `r2-*` in `orchestration/ux-shots/`. Firestore responses held 12 s via CDP `Fetch` interception for the delayed-data race. All test artifacts created in **REG-002 only** and deleted (see Hygiene).
+
+## Per-finding status
+
+### 1. Deep link `?issue=<id>` — **RESOLVED**
+- **Fast path:** `/bim/REG-002?issue=2D2AgxR18Go4wmY3mvQN` (issue I created) → `SEL #5105`, `[ PINNED ISSUES ]` panel shows the issue, pin carries `it-pin-focus`, camera moved (pin screen-projection shifted from (457,526) to (506,397) vs default view). `r2-05-deeplink-correctid.png`
+- **Delayed-data path (the specialist's D-1 race):** Firestore held ~12 s; `MODEL READY` @4 s; at T+16 s (post-data) selection + card + focus-pin all resolve and hold through T+24 s. `r2-06-deeplink-delayed.png`, poll log in `r2b.mjs` run.
+- `/bim/REG-001?issue=ISS-002`: ISS-002 is a seed todo **without** a `bimReference` (REG-001 viewer: 0 pins; register page: no BIM badges) — there is nothing to focus. App renders a normal viewer with no feedback (see new issue N-1). `r2-01-deeplink-reg001-ISS002.png`
+- ⚠ Round-1 note: my first REG-002 attempt used the **displayed** (uppercased) ID and silently failed — see N-2.
+
+### 2. Live-sync form wipe — **RESOLVED**
+- Tab A: assign form open with draft `R2 DRAFT SURVIVES` on REG-002/#5105. Tab B created two remote issues at ~6 s intervals. 18× 1-second polls: form stayed open, draft text preserved, `SEL #5105` unchanged — zero wipes. (`r2c.mjs` poll log)
+- Mechanism confirmed: `sessionStorage["it-issue-draft:REG-002:5105"] = {"title":…,"description":…,"status":…,"priority":…,"assigneeId":…}`; reopen restores the draft.
+- Escape now closes the form (round-1 #5 fixed) and preserves selection; CANCEL works. One wart: CANCEL does not clear the draft (N-3).
+
+### 3. Co-located pins — **RESOLVED**
+- Three issues pinned on the same element (#5105): pins **fan out** to distinct positions (457,526) / (472,553) / (441,553), individually clickable — now real `<button>` elements with `title` + `aria-label` ("Issue …: R2 CLUSTER ALPHA — OPEN").
+- Panel upgraded to `[ PINNED ISSUES ] 3` listing **all** issues on the element, each with `↖ FOCUS` + `→ OPEN IN REGISTER`. `r2-03-cluster.png`
+- Contrast fix confirmed in computed styles: pin bg `rgb(27,27,25)` (ink) + paper halo `rgba(250,250,247,.92) 0 0 0 2px` — legible on the coral selection face and on the white model; status still encoded by chip text, not color alone.
+- Bonus: `N PINNED` chip now updates immediately on save (round-1 #11 fixed).
+
+### 4. Friction recount (landing → pinned issue) — **4 clicks / 0 scrolls — target met**
+CTA (above fold, y=256) → model click → `★ ASSIGN ISSUE` (now at top of selection column, y=269, in-viewport) → `→ PIN ISSUE` (y=470, in-viewport). Title input autofocuses (`document.activeElement = INPUT#ai-title`), saving the old click-to-focus step. Only unexplained residue: no success toast (N-4).
+
+### 5. Regression sweep — all praised items intact
+- `LOADING IFC MODEL…` at 1.4 s ✓ (`r2-08`) · WebGL-unavailable fallback copy unchanged and correct ✓ (`r2-11`) · validation error: coral border + `TITLE TOO SHORT — MIN 5 CHARACTERS` + new `aria-invalid=true` ✓ (`r2-10`) · landing CTA above fold, `href=/bim/demo` ✓ (`r2-07`).
+- Also fixed from round 1: #3 overlay/watermark collision (status pill moved to canvas top-left), #6 GUID now renders full (`1$sXzQ8nj6mAikFhdcv6OT`, no clip), #7 disabled faded-coral `◈ 3D VIEWPORT` replaced by ghost `↩ REGISTER VIEW` link.
+- 480 px via deep link: focus pin in viewport, no horizontal overflow ✓ (`r2-12`); sidebar still stacks above the viewer (N-5).
+
+## New issues (none blocking)
+
+| # | Sev | Issue | Fix suggestion |
+|---|---|---|---|
+| N-1 | minor | Deep link to an **unpinned/unknown** issue id (e.g. `REG-001?issue=ISS-002`) is a silent no-op | Inline notice: `ISSUE NOT PINNED IN MODEL — VIEW IN REGISTER →` |
+| N-2 | polish | Panel displays ids uppercased (CSS text-transform) but doc ids are mixed-case; copying the displayed id into a URL silently fails | `user-select` the raw id or drop the uppercase transform on id text |
+| N-3 | polish | CANCEL closes the form but leaves the sessionStorage draft — stale draft resurrects on reopen | Clear the draft key on explicit CANCEL (keep it for Escape/sync-dismiss) |
+| N-4 | polish | No success feedback on save (failure has a banner) | Mirror banner: `ISSUE SAVED — PINNED ON #5105` |
+| N-5 | polish | 480 px: nav sidebar still pushes the model below the fold | Collapse sidebar to a top strip ≤640 px |
+
+## Hygiene confirmation
+
+- Created (all in REG-002): `R2 CLUSTER ALPHA/BRAVO/CHARLIE`, `R2 REMOTE WRITE W5/W11`, `R2 FRICTION TEST` — **all six deleted via UI** (each with a confirm dialog naming the issue id — house rule 12 honored ✓).
+- Final state verified: REG-002 = `2 OPEN / 2 TOTAL` seed todos, 0 BIM badges, 0 pins, 0 smart views (`r2-13`, viewer probe). REG-001 = `2 OPEN / 3 TOTAL` seeds intact, 0 badges, 0 pins, 0 smart views. My sessionStorage draft keys removed; both review tabs closed; no servers left running.
+
+## Verdict
+
+Both round-1 blockers are fixed and verified under the exact failure conditions (slow Firestore, concurrent writes); the pin-cluster and focus-management majors are fixed with correct house-style execution (color + form, never color alone); friction hit the 4-click/0-scroll target. Remaining items are five minor/polish nits, none of which blocks a field engineer's defect-logging flow.
+
+**VERDICT: SHIP** — 0 blockers, 0 majors, 5 minor/polish (N-1…N-5).

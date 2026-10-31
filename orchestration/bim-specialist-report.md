@@ -62,3 +62,37 @@ With a 929 px viewport, after selecting an element the `#btn-assign-issue` contr
 
 VERDICT: FAIL
 DEFECTS: 2 (1 medium functional, 1 low usability)
+
+---
+
+## Round 2 — re-verification of the fix round (same reviewer, independent)
+
+**Build under test:** `https://issuetrack-v4.web.app`, bundle `index-Bp67uzNc.js` (confirmed in served `index.html`).
+**Scope:** original 8-item plan re-run, focused on the two round-1 defects, plus a quick regression pass. **Test hygiene:** all writable artifacts were created in the **REG-002** scratch register (issue on its own pin + `/bim/REG-002?issue=…`), then deleted; REG-001 was touched read-only this round.
+
+### Per-item results (round 2)
+
+| # | Test item | Result | Evidence |
+|---|---|---|---|
+| 1 | Landing CTA + no login | **PASS** | Hero CTA `◈ OPEN BIM DEMO — NO ACCOUNT NEEDED` still present, class `it-demo-cta-btn`, rect x=863.4 y=256.4 w=315.6 h=35.4, in viewport (header nav `◈ BIM DEMO` also present). Real click → `/bim/demo`, `MODEL READY` in **2916 ms**; 0 password inputs, 0 auth-text hits, 0 `identitytoolkit/securetoken/auth0` resource loads; chip `NO ACCOUNT REQUIRED`. `r2-19-landing-cta.png`, `r2-01-demo-ready.png` |
+| 2 | Cold load with Firestore delayed 12 s | **PASS** | Canvas at **742 ms**, `MODEL READY` at **2917 ms**, first Firestore response at **12445 ms** (`beforeData: true`); registers list empty until data lands (expected); no errors. `r2-20-cold-load.png` |
+| 3 | Selection → ASSIGN ISSUE (visibility fix) → validation → save | **PASS** | On `/bim/REG-002`: selected `IFCSLAB` localId **5665**, GUID `1$sXzQ8nj6mAikFhdcv6Qd`, chip `SEL #5665`, 56 property rows. **`#btn-assign-issue` rect top 268.8 / bottom 301.8 / left 853 / w 307 at scrollY=0, `inViewport: true`, hit-test returns `BUTTON#btn-assign-issue`** — matches the builder's 268/301 measurement; no scrolling was performed before this assertion. Title `BIM` → `TITLE TOO SHORT — MIN 5 CHARACTERS`, `aria-invalid=true`, `ISSUE NOT SAVED — TITLE TOO SHORT`, form stayed open, REG-002 count unchanged 2→2. Valid save → todo **`fZs6beEc34WQofF9w0nw`** `BIM-R2 pin check`, `in-progress`, `HIGH`, `PEO-002`, `bimReference {modelId sample, localId 5665, guid 1$sXz…Qd, worldPosition x 10.58704 y 8.4709 z 20.32}`. `r2-03-assign-visible.png`, `r2-04-pinned.png` |
+| 4 | Pin anchor accuracy + orbit/zoom tracking + reload persistence | **PASS** | Anchor computed from `__bimEngine.projectWorldToNDC` vs `style.left/top` + host rect: Δ **0.000 / 0.000 px**. Orbit (camera 35.96,28.81,41.44 → −0.22,−38.54,23.37) moved the pin 252.19→325.56 px left; wheel zoom moved it to 359.83 px, inside canvas. After reload: 1 pin restored at `left 252.189px / top 250.089px`, Δ 0, selection null (correct). `r2-05b-pin-tracking.png`, `r2-06b-reload.png`, `r2-16-reg2-pristine.png` |
+| 5 | Pin click → selection + issue detail | **PASS** | Real click on pin → `selKey sample:5665`, chip `SEL #5665`, `[ SELECTED ITEM ]` IFCSLAB/5665/GUID, `[ PINNED ISSUE ]` with title, `↖ FOCUS`, `HIGH`, `IN PROGRESS`, `→ OPEN IN REGISTER`. `r2-07-pin-click.png` |
+| 6 | BIM badge + `?issue=` deep link — **fast and slow-data races** | **PASS (both variants)** | Badge: only the pinned card shows `◈ BIM` → `href=/bim/REG-002?issue=fZs6beEc34WQofF9w0nw` (`title="Pinned in the 3D viewport"`); real click lands on that URL, chip `SEL #5665`, pinned panel, `it-pin it-pin-focus`, `__bimEngine._lastFlyTarget = {10.58704, 8.4709, 20.32}`, camera settled at **17.59 / 14.47 / 27.32** = world + (7,6,7) offset — camera actually flew. Fresh-tab deep link identical. **Slow path** (Firestore held 12 s): ready @3628 ms, first FS @12578 ms, pre-data state has no selection/pin (expected), then after data arrives chip `SEL #5665`, pinned panel, focus class, `flyTarget` set, camera mid-flight 23.14/18.26/31.63 settling to 17.59/14.47/27.32. Round-1 defect **D-1 is fixed**; effect now deps on `issues` and calls `flyToWorldPosition`. `r2-08-project-badge.png`, `r2-09-badge-deep-link.png`, `r2-10-deep-link-fast.png`, `r2-11-deep-link-slow.png` |
+| 7 | Regression sanity — selection, ItemsFinder, palette, Smart Views | **PASS** | Selection inspect 56 rows. Finder `Pset_VDC` / `05-Tipo de Elemento` / `Fundacion` → `20 ITEM(S) MATCH`, chip `20 MATCH`. Palette `COLOUR ITEM CRITICAL` → `ITEM COLOURED`, `1 ITEM(S) COLOURED`, 1 colorization. Smart View `QA-R2 VIEW` → `VIEW CAPTURED`, persisted doc `1433ba68-…` with 1 colorization. `r2-13-finder-20.png`, `r2-14-palette.png`, `r2-15-smartview.png` |
+| 8 | Cleanup / both registers pristine | **PASS** | Deleted `projects/REG-002/todos/fZs6beEc34WQofF9w0nw` (200, re-GET **404**) and `projects/REG-002/smartViews/1433ba68-85ad-4a58-a034-cc6b4a513551` (200, re-GET **404**). Final GET: **REG-001 = ISS-001/ISS-002/ISS-003, 0 smart views**; **REG-002 = ISS-004/ISS-005, 0 smart views**, no `bimReference` on any seed doc. UI after cleanup: `/bim/REG-002` 0 pins + 0 stored views, `/project/REG-002` 2 cards + 0 badges, `/bim/demo` 0 pins. `r2-16-reg2-pristine.png`, `r2-17-reg2-project-pristine.png`, `r2-18-demo-pristine.png` |
+
+### Defect status
+
+| ID | Round-1 defect | Status |
+|---|---|---|
+| D-1 | `?issue=` deep link lost the selection when issue data arrived after `MODEL READY` (medium) | **FIXED** — verified in fast, badge-navigation, and 12 s-delayed paths (selection + panel + camera fly). Effect now `[ready, focusIssueId, issues]` with once-per-id guard (`BimPage.jsx:231-245`) |
+| D-2 | ASSIGN ISSUE below the fold (low) | **FIXED** — visible at top of right column, top 268.8 / bottom 301.8, hit-testable at scrollY=0 |
+
+**New defects found in round 2: none.** No console errors, no read failures, no regression in selection/finder/palette/smart-view persistence. Harness notes (not app defects): controls below the fold in the tool column (finder/palette/smart-view buttons) still need `scrollIntoView` for CDP clicks — same as round 1; one drag attempt showed no camera change until the pointer sequence was repeated, attributed to the harness, since the repeat moved both camera and pin.
+
+**Round-2 test hygiene:** all artifacts confined to REG-002 and deleted; REG-001 read-only; stale round-1 deep-link tabs (whose todo no longer exists) were closed; local builder dev-server tabs on ports 8741/8733/8128 were left untouched. No app code, config, or deployment modified by the reviewer.
+
+VERDICT: PASS
+DEFECTS: 0 open (2 round-1 defects verified fixed; 0 new)

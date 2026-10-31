@@ -14,7 +14,7 @@
 | Wave | Scope | Agent | Status |
 |------|-------|-------|--------|
 | 0-UX | Design system from reference image → design/DESIGN.md + tokens.css | webdev-marvin | done |
-| A | Exams 1+2: static app + vanilla JS (people page, 9 interactive features) | coder | running |
+| A | Exams 1+2: static app + vanilla JS (people page, 9 interactive features) | coder | built + QA PASS; fix round running (f2d627cc) |
 | A-gate | qa-marvin checklist review + Firebase deploy + form submission (exams 1+2 together) | qa-marvin | pending |
 | B | Exam 3: React + Firestore port | coder | pending |
 | C | Exam 4: TOC BIM viewer + ItemsFinder/palette/DataEnhancer/SmartViews | coder | pending |
@@ -26,3 +26,7 @@ Default UX styling = "Chokepoint" design system produced in wave 0. Promote to l
 ## Result log
 
 - 0-UX done (webdev-marvin, run ac92a778): "Chokepoint" house style delivered — design/DESIGN.md (palette roles, mono type scale, component recipes, 12 imperative rules), design/tokens.css (CSS vars + .it-* classes, braces verified), design/preview.html (mock render). Palette: paper #FAFAF7 / ink #1B1B19 / coral #F0561E. Files spot-checked on disk.
+- Wave A: coder run 08d4ea1a timed out (no completion report), but app/ contains full implementation: index/people/project pages + js/{store,ui,index-page,project-page,people-page}.js, tokens.css copied verbatim, all JS passes node --check, all pages serve 200 on :8611. Evidence comments for exam items present (2.1/2.2 tiles, 2.6 status colors, localStorage bonus). QA gate now; parent running browser smoke test.
+- QA gate spawned: qa-marvin run 2b7750fd (deepseek-reasoner), report target orchestration/qa-wave-a.md. Browser smoke test abandoned (screenshot timed out twice; static HTTP checks already green). Local test server left running on :8611.
+- QA VERDICT: PASS — 13/13 checklist items, 0 blocking, 6 non-blocking defects (report: orchestration/qa-wave-a.md; store 18/18, browser 43/43 suites by QA). Fix round dispatched to kept coder session (run f2d627cc): import merge non-destructive + import validation, edit-status visibility, 3-digit IDs, dead label, title scale + off-token color. After fix: re-verify, then Firebase deploy (marvin-dev-c4ca4) + combined exam 1+2 form submission.
+

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IssueTrack — Register Detail</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F0561E'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='15' font-weight='700' text-anchor='middle' fill='%23FFFFFF'%3EIT%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="it-body" data-page="projects">
+
+  <header class="it-topbar">
+    <span class="it-title">ISSUETRACK</span>
+    <span class="it-muted-text">/ REGISTER DETAIL</span>
+    <span class="it-meta it-num" id="topbar-meta">—</span>
+    <button class="it-btn it-btn-primary" type="button" id="btn-new-issue">+ NEW ISSUE</button>
+  </header>
+
+  <div class="it-layout">
+
+    <aside class="it-side">
+      <div class="it-section-label" style="margin-top:0">[ NAV ]</div>
+      <nav class="it-nav">
+        <a href="index.html" data-nav="projects">▸ Registers</a>
+        <a href="people.html" data-nav="people">▸ People</a>
+      </nav>
+
+      <div class="it-section-label">[ REGISTERS ]</div>
+      <div class="it-side-list" id="side-registers"></div>
+    </aside>
+
+    <main class="it-main">
+
+      <a class="it-breadcrumb" href="index.html">← ALL REGISTERS</a>
+
+      <div id="detail-root"></div>
+
+      <!-- Register edit form (exam 2.5) -->
+      <div class="it-section-label" id="edit-label" hidden>[ EDIT REGISTER INFO ]</div>
+      <form class="it-card it-form" id="edit-form" hidden novalidate>
+        <div class="it-field">
+          <label class="it-label" for="e-name">Register name *</label>
+          <input class="it-input" id="e-name" name="name" type="text" autocomplete="off">
+          <div class="it-error" id="e-name-error" hidden></div>
+        </div>
+
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="e-code">Register code</label>
+            <input class="it-input" id="e-code" name="code" type="text" autocomplete="off">
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="e-site">Site / location</label>
+            <input class="it-input" id="e-site" name="site" type="text" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="it-field">
+          <label class="it-label" for="e-description">Description</label>
+          <input class="it-input" id="e-description" name="description" type="text" autocomplete="off">
+        </div>
+
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="e-date">Register date</label>
+            <input class="it-input" id="e-date" name="date" type="date">
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="e-lead">Lead assignee</label>
+            <select class="it-select it-input" id="e-lead" name="leadId"></select>
+          </div>
+        </div>
+
+        <div class="it-form-actions">
+          <button class="it-btn it-btn-primary" type="submit">→ SAVE CHANGES</button>
+          <button class="it-btn" type="button" id="btn-cancel-edit">CANCEL</button>
+        </div>
+      </form>
+
+      <!-- Status banner lives OUTSIDE the form so it stays visible after
+           the form is hidden on save. -->
+      <div class="it-form-actions">
+        <span class="it-status" id="edit-status" hidden></span>
+      </div>
+
+      <div class="it-section-label">[ ISSUES ] <span class="it-muted-text" id="issue-count"></span></div>
+
+      <form class="it-card it-form" id="issue-form" hidden novalidate>
+        <div class="it-field">
+          <label class="it-label" for="i-title">Issue title *</label>
+          <input class="it-input" id="i-title" name="title" type="text" placeholder="SHORT PROBLEM SUMMARY" autocomplete="off">
+          <div class="it-error" id="i-title-error" hidden></div>
+        </div>
+
+        <div class="it-field">
+          <label class="it-label" for="i-description">Description</label>
+          <input class="it-input" id="i-description" name="description" type="text" placeholder="DETAILS…" autocomplete="off">
+        </div>
+
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="i-status">Status</label>
+            <select class="it-select it-input" id="i-status" name="status"></select>
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="i-priority">Priority</label>
+            <select class="it-select it-input" id="i-priority" name="priority"></select>
+          </div>
+        </div>
+
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="i-assignee">Assignee</label>
+            <select class="it-select it-input" id="i-assignee" name="assigneeId"></select>
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="i-due">Due date</label>
+            <input class="it-input" id="i-due" name="due" type="date">
+          </div>
+        </div>
+
+        <div class="it-form-actions">
+          <button class="it-btn it-btn-primary" type="submit">→ CREATE ISSUE</button>
+          <button class="it-btn" type="button" id="btn-cancel-issue">CANCEL</button>
+        </div>
+      </form>
+
+      <!-- Status banner lives OUTSIDE the form so it stays visible after
+           the form is hidden once the issue is logged. -->
+      <div class="it-form-actions">
+        <span class="it-status" id="issue-status" hidden></span>
+      </div>
+
+      <div class="it-todo-list" id="todo-list"></div>
+
+    </main>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/project-page.js"></script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IssueTrack — Issue Registers</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F0561E'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='15' font-weight='700' text-anchor='middle' fill='%23FFFFFF'%3EIT%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="it-body" data-page="projects">
+
+  <header class="it-topbar">
+    <span class="it-title">ISSUETRACK</span>
+    <span class="it-muted-text">/ REGISTER INDEX</span>
+    <span class="it-meta it-num" id="topbar-meta">—</span>
+    <button class="it-btn it-btn-primary" type="button" id="btn-new-register">+ NEW REGISTER</button>
+  </header>
+
+  <div class="it-layout">
+
+    <aside class="it-side">
+      <div class="it-section-label" style="margin-top:0">[ NAV ]</div>
+      <nav class="it-nav">
+        <a href="index.html" data-nav="projects">▸ Registers</a>
+        <a href="people.html" data-nav="people">▸ People</a>
+      </nav>
+
+      <div class="it-section-label">[ REGISTERS ]</div>
+      <div class="it-side-list" id="side-registers"></div>
+
+      <div class="it-section-label">[ ABOUT ]</div>
+      <p class="it-muted-text" style="line-height:1.6">
+        Every register holds its own issue log.<br>
+        Issues live inside the register data.
+      </p>
+    </aside>
+
+    <main class="it-main">
+
+      <h1 class="it-page-title">ISSUE REGISTERS</h1>
+      <p class="it-page-sub">
+        One register per construction project. Open a register to log issues,
+        assign them to people and export the whole set as JSON.
+      </p>
+
+      <div class="it-stats" id="stats"></div>
+
+      <div class="it-section-label">[ REGISTER ] <span class="it-muted-text" id="register-count"></span></div>
+      <div class="it-grid" id="project-grid"></div>
+
+      <div class="it-section-label">[ NEW REGISTER ]</div>
+      <form class="it-card it-form" id="project-form" novalidate>
+        <div class="it-field">
+          <label class="it-label" for="f-name">Register name *</label>
+          <input class="it-input" id="f-name" name="name" type="text" placeholder="MIN 5 CHARACTERS" autocomplete="off">
+          <div class="it-error" id="f-name-error" hidden></div>
+        </div>
+
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="f-code">Register code</label>
+            <input class="it-input" id="f-code" name="code" type="text" placeholder="AUTO" autocomplete="off">
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="f-site">Site / location</label>
+            <input class="it-input" id="f-site" name="site" type="text" placeholder="CITY / SECTOR" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="it-field">
+          <label class="it-label" for="f-description">Description</label>
+          <input class="it-input" id="f-description" name="description" type="text" placeholder="SHORT SCOPE SUMMARY" autocomplete="off">
+        </div>
+
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="f-date">Register date</label>
+            <input class="it-input" id="f-date" name="date" type="date">
+            <div class="it-muted-text" style="margin-top:4px">LEFT EMPTY = TODAY</div>
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="f-lead">Lead assignee</label>
+            <select class="it-select it-input" id="f-lead" name="leadId"></select>
+          </div>
+        </div>
+
+        <div class="it-form-actions">
+          <button class="it-btn it-btn-primary" type="submit">→ CREATE REGISTER</button>
+          <button class="it-btn" type="reset">CLEAR</button>
+          <span class="it-status" id="form-status" hidden></span>
+        </div>
+      </form>
+
+      <div class="it-section-label">[ DATA ]</div>
+      <div class="it-card">
+        <p class="it-page-sub" style="margin-bottom:16px">
+          Export writes every register — including the issues nested inside it — to a
+          JSON file. Importing a file whose register ids already exist updates those
+          registers instead of duplicating them.
+        </p>
+        <div class="it-form-actions" style="margin-top:0">
+          <button class="it-btn it-btn-primary" type="button" id="btn-export">↧ EXPORT JSON</button>
+          <label class="it-btn" for="import-file">↥ IMPORT JSON</label>
+          <input type="file" id="import-file" accept="application/json,.json" hidden>
+          <button class="it-btn it-btn-danger" type="button" id="btn-reset">↺ RESET DEMO DATA</button>
+          <span class="it-status" id="data-status" hidden></span>
+        </div>
+
+        <hr class="it-hr">
+
+        <label class="it-preview-toggle" for="import-text">▸ IMPORT FROM TEXT (PASTE JSON)</label>
+        <div class="it-field">
+          <textarea class="it-input it-code" id="import-text" rows="5" placeholder='{"projects": [ ... ]}'></textarea>
+        </div>
+        <div class="it-form-actions" style="margin-top:0">
+          <button class="it-btn" type="button" id="btn-import-text">↥ IMPORT FROM TEXT</button>
+        </div>
+
+        <hr class="it-hr">
+
+        <details class="it-preview" id="export-preview-details">
+          <summary class="it-preview-toggle">▸ EXPORT PREVIEW</summary>
+          <pre class="it-code" id="export-preview">—</pre>
+        </details>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/index-page.js"></script>
+</body>
+</html>

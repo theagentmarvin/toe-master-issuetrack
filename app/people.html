@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IssueTrack — People</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F0561E'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='15' font-weight='700' text-anchor='middle' fill='%23FFFFFF'%3EIT%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="it-body" data-page="people">
+
+  <header class="it-topbar">
+    <span class="it-title">ISSUETRACK</span>
+    <span class="it-muted-text">/ PEOPLE</span>
+    <span class="it-meta it-num" id="topbar-meta">—</span>
+    <button class="it-btn it-btn-primary" type="button" id="btn-new-person">+ NEW PERSON</button>
+  </header>
+
+  <div class="it-layout">
+
+    <aside class="it-side">
+      <div class="it-section-label" style="margin-top:0">[ NAV ]</div>
+      <nav class="it-nav">
+        <a href="index.html" data-nav="projects">▸ Registers</a>
+        <a href="people.html" data-nav="people">▸ People</a>
+      </nav>
+
+      <div class="it-section-label">[ REGISTERS ]</div>
+      <div class="it-side-list" id="side-registers"></div>
+
+      <div class="it-section-label">[ NOTE ]</div>
+      <p class="it-muted-text" style="line-height:1.6">
+        People are assignees.<br>
+        Every issue can point at one of them.
+      </p>
+    </aside>
+
+    <main class="it-main">
+
+      <h1 class="it-page-title">PEOPLE</h1>
+      <p class="it-page-sub">
+        Directory of the people issues can be assigned to. Rows, not cards —
+        the register index uses tiles, this page reads like a roster.
+      </p>
+
+      <div class="it-stats" id="stats"></div>
+
+      <div class="it-section-label">[ DIRECTORY ] <span class="it-muted-text" id="people-count"></span></div>
+      <table class="it-dir">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Role</th>
+            <th scope="col">Email</th>
+            <th scope="col">Phone</th>
+            <th scope="col" class="it-dir-num">Issues</th>
+          </tr>
+        </thead>
+        <tbody id="people-body"></tbody>
+      </table>
+
+      <div class="it-section-label">[ NEW PERSON ]</div>
+      <form class="it-card it-form" id="person-form" novalidate>
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="p-name">Full name *</label>
+            <input class="it-input" id="p-name" name="name" type="text" placeholder="NAME AND SURNAME" autocomplete="off">
+            <div class="it-error" id="p-name-error" hidden></div>
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="p-role">Role</label>
+            <input class="it-input" id="p-role" name="role" type="text" placeholder="BIM LEAD / INSPECTOR" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="it-form-row">
+          <div class="it-field">
+            <label class="it-label" for="p-email">Email</label>
+            <input class="it-input" id="p-email" name="email" type="text" placeholder="NAME@COMPANY.COM" autocomplete="off">
+            <div class="it-error" id="p-email-error" hidden></div>
+          </div>
+          <div class="it-field">
+            <label class="it-label" for="p-phone">Phone</label>
+            <input class="it-input" id="p-phone" name="phone" type="text" placeholder="+56 9 …" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="it-form-actions">
+          <button class="it-btn it-btn-primary" type="submit">→ ADD PERSON</button>
+          <button class="it-btn" type="reset">CLEAR</button>
+          <span class="it-status" id="form-status" hidden></span>
+        </div>
+      </form>
+
+    </main>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/people-page.js"></script>
+</body>
+</html>

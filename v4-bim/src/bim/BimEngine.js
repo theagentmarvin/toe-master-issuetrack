@@ -61,6 +61,9 @@ export class BimEngine {
 
     this._scan = null
     this._disposed = false
+    /* Wave D — last world position the camera was asked to focus (deep-link
+       / pin focus); exposed for deterministic CDP assertions. */
+    this._lastFlyTarget = null
 
     /* Viewport state (reconciled into the 3D view on every change). */
     this._selectionKey = null
@@ -291,6 +294,42 @@ export class BimEngine {
       return { x: v.x, y: v.y, z: v.z }
     } catch {
       return null
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Wave D — animate the camera to frame a world position (deep-link and
+     pin focus). Uses camera-controls' smooth transition; a small offset
+     frames the element instead of parking the eye on its surface. Falls
+     back to an instant look-at if the transition path throws.
+     ------------------------------------------------------------------ */
+  async flyToWorldPosition(worldPos, opts = {}) {
+    if (!worldPos || typeof worldPos.x !== 'number' || !this.camera) return false
+    const offset = opts.offset || { x: 7, y: 6, z: 7 }
+    this._lastFlyTarget = { x: worldPos.x, y: worldPos.y, z: worldPos.z }
+    const eye = {
+      x: worldPos.x + offset.x,
+      y: worldPos.y + offset.y,
+      z: worldPos.z + offset.z,
+    }
+    try {
+      await this.camera.controls.setLookAt(
+        eye.x, eye.y, eye.z,
+        worldPos.x, worldPos.y, worldPos.z,
+        true,
+      )
+      return true
+    } catch {
+      try {
+        this.camera.controls.setLookAt(
+          eye.x, eye.y, eye.z,
+          worldPos.x, worldPos.y, worldPos.z,
+          false,
+        )
+        return true
+      } catch {
+        return false
+      }
     }
   }
 

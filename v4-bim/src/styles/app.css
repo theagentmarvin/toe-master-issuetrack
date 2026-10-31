@@ -552,10 +552,11 @@ textarea.it-code { width: 100%; box-sizing: border-box; resize: vertical; }
 .it-bim-viewport-status {
   position: absolute;
   left: var(--it-sp-3);
-  bottom: var(--it-sp-3);
+  top: var(--it-sp-3);
   display: flex;
   gap: var(--it-sp-2);
   flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .it-bim-side {
@@ -680,53 +681,51 @@ a.it-btn { text-decoration: none; }
   z-index: 5;
 }
 
-/* A single 3D pin: a coral/accent glyph + status dot. Real <button> so a
-   genuine pointer (and CDP mouse event) can target it. */
+/* A single 3D pin: ink glyph on a paper halo + a status-coloured dot.
+   The paper ring + ink outline keep the pin visible even on a solid-coral
+   selected face (fixes pin contrast — status is colour + form, never
+   colour alone, and the title/aria-label carry the text signal). */
 .it-pin {
   position: absolute;
   transform: translate(-50%, -100%);
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  background: transparent;
-  border: none;
-  padding: 0;
+  gap: 4px;
+  background: var(--it-paper);
+  border: 1px solid var(--it-ink);
+  border-radius: var(--it-radius);
+  padding: 2px 5px 2px 3px;
   cursor: pointer;
   font-family: var(--it-font-mono);
   line-height: 1;
+  box-shadow: 0 0 0 2px rgba(250, 250, 247, 0.92);
 }
 
 .it-pin-glyph {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: var(--it-radius);
-  background: var(--it-state-warn);
-  color: #fff;
-  font-size: 10px;
-  box-shadow: var(--it-shadow-flat);
+  background: var(--it-ink);
+  color: var(--it-paper);
+  font-size: 13px;
 }
 
 .it-pin-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--it-state-warn);
-  border: 1px solid #fff;
+  border: 1px solid var(--it-ink);
 }
 
-/* Status colour lives on the pin itself so colour + glyph shape both encode
-   state (never colour alone). */
-.it-pin[data-status="crit"] .it-pin-glyph,
+/* Status colour lives on the DOT (paired with the glyph form + hover text). */
 .it-pin[data-status="crit"] .it-pin-dot { background: var(--it-state-crit); }
-.it-pin[data-status="warn"] .it-pin-glyph,
 .it-pin[data-status="warn"] .it-pin-dot { background: var(--it-state-warn); }
-.it-pin[data-status="ok"] .it-pin-glyph,
 .it-pin[data-status="ok"] .it-pin-dot { background: var(--it-state-ok); }
-.it-pin[data-status="info"] .it-pin-glyph,
 .it-pin[data-status="info"] .it-pin-dot { background: var(--it-state-info); }
 
 /* The deep-linked pin gets a focus outline the keyboard/cursor can see. */
@@ -735,8 +734,6 @@ a.it-btn { text-decoration: none; }
   outline: 2px solid var(--it-accent);
   outline-offset: 2px;
 }
-
-.it-pin:focus-visible { border-radius: var(--it-radius); }
 
 /* BIM badge on a pinned issue in the details list. */
 .it-bim-badge {
@@ -749,4 +746,91 @@ a.it-btn { text-decoration: none; }
 .it-bim-badge:hover {
   background: var(--it-accent);
   color: var(--it-accent-ink);
+}
+
+/* ==== FIX ROUND #1 additions ==== */
+
+/* Info chip variant (used for the demo "NO ACCOUNT REQUIRED" badge). */
+.it-chip-info {
+  background: var(--it-state-info-bg);
+  border-color: var(--it-state-info);
+  color: var(--it-state-info);
+}
+
+/* The viewport status strip sits top-left so the model READY pill never
+   collides with the That Open Engine watermark at the bottom-left.
+   The pill gets an opaque panel background for legibility (house rule 10).
+   NOTE: the geometry (position/left/top/flex) lives in the single rule
+   above; this only adds the opaque pill surface. */
+.it-bim-status-pill {
+  background: var(--it-panel);
+  border-color: var(--it-hairline-strong);
+}
+
+/* Right column: keep the grid track from overflowing horizontally and let
+   long values wrap (finding #6). */
+.it-bim-side .it-card {
+  min-width: 0;
+}
+
+.it-bim-side .it-dir td,
+.it-bim-side .it-dir th {
+  overflow-wrap: anywhere;
+}
+
+/* Collapsed PROPERTY SETS (selection panel, finding #10). */
+.it-bim-details { margin-top: var(--it-sp-3); }
+
+.it-bim-details-summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--it-fs-label);
+  font-weight: 600;
+  letter-spacing: var(--it-ls-section);
+  text-transform: uppercase;
+  color: var(--it-ink);
+  border-bottom: var(--it-border);
+  padding-bottom: var(--it-sp-1);
+}
+
+.it-bim-details-summary::-webkit-details-marker { display: none; }
+
+.it-bim-details-summary:hover { color: var(--it-accent); }
+
+.it-bim-details-body { margin-top: var(--it-sp-2); }
+
+/* Pinned-issues list (multiple issues on one element). */
+.it-pinned-list { display: grid; gap: var(--it-sp-2); }
+
+.it-pinned-row {
+  border: 1px solid var(--it-hairline);
+  border-left: 3px solid var(--it-state-info);
+  border-radius: var(--it-radius-card);
+  background: var(--it-panel);
+  padding: var(--it-sp-2) var(--it-sp-3);
+  cursor: pointer;
+}
+
+.it-pinned-row:hover { background: var(--it-sunk); }
+
+.it-pinned-row-active {
+  border-left-color: var(--it-accent);
+  background: var(--it-accent-soft);
+}
+
+.it-pinned-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--it-sp-2);
+}
+
+.it-pinned-row-title { font-weight: 600; }
+
+.it-pinned-row-desc {
+  margin: var(--it-sp-1) 0 0;
+}
+
+.it-pinned-row .it-todo-chips {
+  margin-top: var(--it-sp-1);
 }

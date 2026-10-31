@@ -3,18 +3,22 @@
    ---------------------------------------------------------------------
    Renders a DOM (CSS2D-style) pin for every pinned issue of the current
    register, positioned each frame by projecting the stored `worldPosition`
-   through the ACTIVE camera (perspective or orthographic). Because the pins
-   are plain DOM, they:
-     • survive orbit / zoom / camera changes (re-projected every frame)
-     • are REAL clickable buttons (accessible to a real CDP mouse click)
-     • tear down cleanly on unmount (the rAF loop cancels itself)
+   through the ACTIVE camera (perspective or orthographic). Fixes from
+   FIX ROUND #1:
 
-   Status colour comes from the `data-status` attribute, backed by the
-   house state tokens; the title/status show on hover via `title`.
+   • CO-LOCATED pins spread out: pins sharing the same element anchor
+     (modelId:localId — identical worldPosition) are fanned out in a
+     deterministic radial pattern, so every pin gets its own clickable
+     pixel and no issue becomes unreachable.
+   • Pins are real <button aria-label="…"> controls (keyboard + CDP
+     clickable); the concrete issue is kept on data-issue-id.
+
+   Status colour lives on the status dot (house rule 6/8), with the glyph
+   in ink on a paper halo (pin contrast fix) in tokens.css/app.css.
    ===================================================================== */
 import { useEffect, useRef } from 'react'
 
-/* Map an issue status to a house state token (drives the pin colour). */
+/* Map an issue status to a house state token (drives the dot colour). */
 function statusToken(status) {
   switch (status) {
     case 'blocked':
@@ -29,8 +33,40 @@ function statusToken(status) {
   }
 }
 
+/* Stable element anchor for co-location grouping. */
+function anchorOf(reference) {
+  return reference.modelId + ':' + reference.localId
+}
+
 export default function IssuePins({ engine, issues = [], onPinClick, focusIssueId }) {
   const overlayRef = useRef(null)
+
+  /* Pre-compute each pinned issue's element anchor + group membership so the
+     per-frame projection can apply a deterministic fan-out offset. */
+  const pinned = issues.filter(
+    (issue) =>
+      issue.bimReference &&
+      issue.bimReference.worldPosition
+  )
+
+  const groups = {}
+  const order = []
+  for (const issue of pinned) {
+    const k = anchorOf(issue.bimReference)
+    if (!groups[k]) {
+      groups[k] = []
+      order.push(k)
+    }
+    groups[k].push(issue.id)
+  }
+  const groupIndexByIssueId = {}
+  const groupSizeByIssueId = {}
+  for (const k of order) {
+    groups[k].forEach((issueId, index) => {
+      groupIndexByIssueId[issueId] = index
+      groupSizeByIssueId[issueId] = groups[k].length
+    })
+  }
 
   useEffect(() => {
     let raf = 0
@@ -54,30 +90,38 @@ export default function IssuePins({ engine, issues = [], onPinClick, focusIssueI
         }
         const sx = (ndc.x * 0.5 + 0.5) * rect.width
         const sy = (1 - (ndc.y * 0.5 + 0.5)) * rect.height
-        /* Keep slightly off-screen pins hidden instead of clamping them onto
-           the border (a pin that is not on the model must not mislead). */
         if (sx < -24 || sx > rect.width + 24 || sy < -24 || sy > rect.height + 24) {
           pinEl.style.display = 'none'
           return
         }
+
+        /* Deterministic radial fan-out for co-located pins. */
+        const n = Number(pinEl.dataset.groupSize || 1)
+        const idx = Number(pinEl.dataset.groupIndex || 0)
+        let ox = 0
+        let oy = 0
+        if (n > 1) {
+          const radius = Math.max(16, n * 6)
+          const angle = (idx / n) * Math.PI * 2 - Math.PI / 2
+          ox = Math.cos(angle) * radius
+          oy = Math.sin(angle) * radius
+        }
+
         pinEl.style.display = ''
-        pinEl.style.left = sx + 'px'
-        pinEl.style.top = sy + 'px'
+        pinEl.style.left = sx + ox + 'px'
+        pinEl.style.top = sy + oy + 'px'
       })
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
   }, [engine])
 
-  const pinned = issues.filter(
-    (issue) => issue.bimReference && issue.bimReference.worldPosition,
-  )
-
   return (
     <div ref={overlayRef} className="it-bim-pins" aria-label="Pinned issues">
       {pinned.map((issue) => {
         const ref = issue.bimReference
         const token = statusToken(issue.status)
+        const label = 'Issue ' + issue.id.toUpperCase() + ': ' + issue.title + ' — ' + issue.status.toUpperCase()
         return (
           <button
             key={issue.id}
@@ -85,14 +129,17 @@ export default function IssuePins({ engine, issues = [], onPinClick, focusIssueI
             className={'it-pin' + (issue.id === focusIssueId ? ' it-pin-focus' : '')}
             data-status={token}
             data-issue-id={issue.id}
+            data-group-size={groupSizeByIssueId[issue.id] || 1}
+            data-group-index={groupIndexByIssueId[issue.id] || 0}
             data-wx={ref.worldPosition.x}
             data-wy={ref.worldPosition.y}
             data-wz={ref.worldPosition.z}
+            aria-label={label}
             title={issue.title + ' — ' + issue.status.toUpperCase()}
             onClick={() => onPinClick(issue)}
           >
-            <span className="it-pin-glyph">◈</span>
-            <span className="it-pin-dot" />
+            <span className="it-pin-glyph" aria-hidden="true">◈</span>
+            <span className="it-pin-dot" aria-hidden="true" />
           </button>
         )
       })}

@@ -13,10 +13,13 @@
    Wave D adds:
      • "/bim/demo"  — a PUBLIC demo (no account, no login, first paint
        never waits on Firestore; writes go to the demo register REG-001).
-     • ASSIGN ISSUE — pin an issue to a selected element (bimReference).
-     • 3D issue pins— one status-coloured pin per pinned issue, clickable,
-       surviving orbit/zoom, disposed on route exit.
-     • ?issue=      — deep link that selects the element + focuses its pin.
+     • ASSIGN ISSUE — pin an issue to a selected element (bimReference),
+       with a draft that survives live-sync / snapshot re-renders.
+     • 3D issue pins— status-coloured pins, co-located pins fanned out,
+       clickable, surviving orbit/zoom, disposed on route exit.
+     • ?issue=      — deep link that RESOLVES the issue whenever its data
+       arrives (even after MODEL READY), flies the camera to the issue and
+       focuses its pin.
 
    Everything degrades gracefully: no WebGL → a message, no crash loop.
    ===================================================================== */
@@ -32,7 +35,7 @@ import SmartViewsPanel from '../components/SmartViewsPanel'
 import SelectionPanel from '../components/SelectionPanel'
 import AssignIssuePanel from '../components/AssignIssuePanel'
 import IssuePins from '../components/IssuePins'
-import { statusInfo, priorityInfo } from '../lib/constants'
+import PinnedIssuesPanel from '../components/PinnedIssuesPanel'
 import { subscribeTodos } from '../services/todosService'
 import {
   subscribeSmartViews,
@@ -43,6 +46,11 @@ import {
 
 /* The public demo register — the ONLY place the demo route writes. */
 const DEMO_PROJECT_ID = 'REG-001'
+
+/* Stable element anchor used to group co-located pins + list panel. */
+function brKey(reference) {
+  return reference.modelId + ':' + reference.localId
+}
 
 /* Shape the raw scan (Sets/Maps) into plain data for the dropdowns. */
 function shapeScan(scan) {
@@ -123,6 +131,7 @@ export default function BimPage() {
   const containerRef = useRef(null)
   const engineRef = useRef(null)
   const issuesRef = useRef([])
+  const focusedRef = useRef('')
 
   const [status, setStatus] = useState('STARTING BIM VIEWPORT…')
   const [error, setError] = useState('')
@@ -136,12 +145,12 @@ export default function BimPage() {
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState({ message: '', kind: '' })
   const [views, setViews] = useState([])
-  /* Wave D — the register's issues (for the 3D pins) + the pinned issue
-     currently shown in the detail strip. */
+  /* Wave D — the register's issues (for the 3D pins) + the issue id
+     currently focused (pin click / deep link). */
   const [issues, setIssues] = useState([])
-  const [activeIssue, setActiveIssue] = useState(null)
+  const [activeIssueId, setActiveIssueId] = useState(null)
 
-  /* Keep the live issue list reachable from the ?issue= focus effect. */
+  /* Keep the live issue list reachable from replace-render-safe effects. */
   useEffect(() => {
     issuesRef.current = issues
   }, [issues])
@@ -172,6 +181,9 @@ export default function BimPage() {
       },
     })
     engineRef.current = engine
+    /* Diagnostic handle for deterministic CDP assertions (camera focus,
+       selection key). Removed on unmount. */
+    if (typeof window !== 'undefined') window.__bimEngine = engine
 
     ;(async () => {
       try {
@@ -193,6 +205,9 @@ export default function BimPage() {
       alive = false
       engine.dispose()
       engineRef.current = null
+      if (typeof window !== 'undefined' && window.__bimEngine === engine) {
+        window.__bimEngine = null
+      }
     }
   }, [])
 
@@ -210,20 +225,24 @@ export default function BimPage() {
   }, [projectId])
 
   /* ------------------------------------------------------------------
-     ?issue=<todoId> deep link: once the model is ready AND that pinned
-     issue has arrived, select its element and focus its pin.
+     ?issue=<todoId> deep link. The effect depends on `issues` (NOT just
+     `ready`), so when the todo arrives AFTER the model is ready (slow
+     Firestore) it still resolves — once per id, fly camera + select.
      ------------------------------------------------------------------ */
   useEffect(() => {
     if (!ready || !focusIssueId) return
     const engine = engineRef.current
     if (!engine) return
-    const issue = issuesRef.current.find((item) => item.id === focusIssueId)
+    if (focusedRef.current === focusIssueId) return
+    const issue = issues.find((item) => item.id === focusIssueId)
     if (!issue || !issue.bimReference || !issue.bimReference.worldPosition) return
+    focusedRef.current = focusIssueId
     const br = issue.bimReference
     engine.resolveSelection(br.modelId, br.localId).then(() => {
-      setActiveIssue(issue)
+      engine.flyToWorldPosition(br.worldPosition)
+      setActiveIssueId(issue.id)
     })
-  }, [ready, focusIssueId])
+  }, [ready, focusIssueId, issues])
 
   /* ------------------------------------------------------------------
      Live smart-views subscription — stored views populate the table the
@@ -506,18 +525,57 @@ export default function BimPage() {
   }
 
   /* ==================================================================
-     Wave D — issue pinning.
+     Wave D — issue pinning + deep-link focus.
      ================================================================== */
   async function handlePinClick(issue) {
     const engine = engineRef.current
     if (engine && issue.bimReference) {
+      if (issue.bimReference.worldPosition) engine.flyToWorldPosition(issue.bimReference.worldPosition)
       await engine.resolveSelection(issue.bimReference.modelId, issue.bimReference.localId)
     }
-    setActiveIssue(issue)
+    setActiveIssueId(issue.id)
   }
 
   function handleAssigned(saved) {
-    setActiveIssue(saved)
+    /* Optimistic local append — the "N PINNED" count updates immediately
+       instead of waiting for the snapshot round-trip. */
+    setIssues((previous) =>
+      previous.some((item) => item.id === saved.id) ? previous : [...previous, saved],
+    )
+    setActiveIssueId(saved.id)
+  }
+
+  /* The specific issue being focused (pin click or deep link). */
+  const activeIssue = activeIssueId ? issues.find((item) => item.id === activeIssueId) : null
+
+  /* Element anchor for the pinned-issues list: prefer the focused issue's
+     element, else the current canvas selection's element. */
+  const anchorKey = activeIssue && activeIssue.bimReference
+    ? brKey(activeIssue.bimReference)
+    : selection
+      ? brKey(selection)
+      : null
+
+  const pinnedIssues = useMemo(
+    () => issues.filter((item) => item.bimReference && item.bimReference.worldPosition),
+    [issues],
+  )
+
+  const elementIssues = useMemo(() => {
+    if (!anchorKey) return []
+    return pinnedIssues
+      .filter((item) => brKey(item.bimReference) === anchorKey)
+      .slice()
+      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+  }, [pinnedIssues, anchorKey])
+
+  function handleFocusIssue(issue) {
+    const engine = engineRef.current
+    if (engine && issue.bimReference) {
+      if (issue.bimReference.worldPosition) engine.flyToWorldPosition(issue.bimReference.worldPosition)
+      engine.resolveSelection(issue.bimReference.modelId, issue.bimReference.localId)
+    }
+    setActiveIssueId(issue.id)
   }
 
   const selectedColor = useMemo(() => {
@@ -534,8 +592,7 @@ export default function BimPage() {
   const backTarget = demoMode ? '/' : project ? '/project/' + project.id : '/'
   const backLabel = demoMode ? '← LANDING PAGE' : project ? '← BACK TO ' + project.name.toUpperCase() : '← ALL REGISTERS'
 
-  const activeStatus = activeIssue ? statusInfo(activeIssue.status) : null
-  const activePriority = activeIssue ? priorityInfo(activeIssue.priority) : null
+  const pinnedCount = pinnedIssues.length
 
   return (
     <>
@@ -548,7 +605,7 @@ export default function BimPage() {
           {pageTitle}
         </h1>
         {demoMode ? (
-          <span className="it-chip it-chip-crit">NO ACCOUNT REQUIRED</span>
+          <span className="it-chip it-chip-info">NO ACCOUNT REQUIRED</span>
         ) : (
           <span className="it-muted-text it-num">{error ? 'OFFLINE' : status}</span>
         )}
@@ -582,15 +639,15 @@ export default function BimPage() {
               onPinClick={handlePinClick}
             />
             <div className="it-bim-viewport-status">
-              <span className="it-chip">{status}</span>
+              <span className="it-chip it-bim-status-pill">{status}</span>
               {ready && selection ? (
                 <span className="it-chip it-chip-crit">
                   SEL #{selection.localId}
                 </span>
               ) : null}
-              {issues.filter((issue) => issue.bimReference && issue.bimReference.worldPosition).length ? (
+              {pinnedCount ? (
                 <span className="it-chip it-chip-warn">
-                  {issues.filter((issue) => issue.bimReference && issue.bimReference.worldPosition).length} PINNED
+                  {pinnedCount} PINNED
                 </span>
               ) : null}
             </div>
@@ -598,49 +655,38 @@ export default function BimPage() {
 
           <div className="it-bim-side">
             {feedback.message ? (
-              <div className="it-form-actions">
+              <div className="it-form-actions" key="fb">
                 <span className={'it-status' + (feedback.kind ? ' is-' + feedback.kind : '')} role="status">
                   {feedback.message}
                 </span>
               </div>
             ) : null}
 
-            {/* Wave D — pinned-issue detail strip (pin click / deep link). */}
-            {activeIssue ? (
-              <section className="it-card it-bim-panel" data-testid="pinned-issue">
-                <div className="it-card-head">
-                  <span className="it-label">[ PINNED ISSUE ]</span>
-                  <span className="it-num it-muted-text">{activeIssue.id}</span>
-                </div>
-                <div className="it-todo-desc" style={{ color: 'var(--it-ink)', fontWeight: 600 }}>
-                  {activeIssue.title}
-                </div>
-                {activeIssue.description ? (
-                  <p className="it-todo-desc">{activeIssue.description}</p>
-                ) : null}
-                <div className="it-todo-chips">
-                  {activePriority ? <span className={'it-chip ' + activePriority.chip}>{activePriority.label}</span> : null}
-                  {activeStatus ? <span className={'it-chip ' + activeStatus.chip}>{activeStatus.label}</span> : null}
-                </div>
-                <div className="it-form-actions">
-                  <Link className="it-btn" to={'/project/' + projectId}>
-                    → OPEN IN REGISTER
-                  </Link>
-                </div>
-              </section>
-            ) : null}
-
-            <SelectionPanel selection={selection} />
-
-            {/* Wave D — ASSIGN ISSUE action on the selected element. */}
+            {/* Wave D — ASSIGN ISSUE sits at the TOP of the right column so
+                it is visible the moment an element is selected (no scroll). */}
             <AssignIssuePanel
+              key="assign"
               projectId={projectId}
               selection={selection}
               people={people}
               onSaved={handleAssigned}
             />
 
+            {/* Wave D — list ALL issues on the focused/selected element. */}
+            {elementIssues.length ? (
+              <PinnedIssuesPanel
+                key="pinned"
+                issues={elementIssues}
+                activeIssueId={activeIssueId}
+                registerId={projectId}
+                onFocus={handleFocusIssue}
+              />
+            ) : null}
+
+            <SelectionPanel key="selection" selection={selection} />
+
             <ItemsFinderPanel
+              key="finder"
               propertySets={scan ? scan.propertySets : []}
               propertiesBySet={scan ? scan.propertiesBySet : {}}
               allProperties={scan ? scan.allProperties : []}
@@ -654,6 +700,7 @@ export default function BimPage() {
               onImport={handleImportQueries}
             />
             <ColorsPalette
+              key="palette"
               hasSelection={Boolean(selection)}
               selectedColor={selectedColor}
               colorizations={colorizations}
@@ -662,12 +709,14 @@ export default function BimPage() {
               onClearAll={handleClearAllColors}
             />
             <DataEnhancerPanel
+              key="enhancer"
               selection={selection}
               resultCount={enhanceCount}
               busy={busy}
               onEnhance={handleEnhance}
             />
             <SmartViewsPanel
+              key="views"
               views={views}
               currentFinderCount={queryNames.length}
               currentColorCount={colorizations.length}

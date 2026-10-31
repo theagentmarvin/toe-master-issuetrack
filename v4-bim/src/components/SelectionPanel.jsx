@@ -88,24 +88,28 @@ export default function SelectionPanel({ selection }) {
       ) : null}
 
       {psets.length > 0 ? (
-        <div className="it-bim-block">
-          <div className="it-label it-bim-list-title">PROPERTY SETS</div>
-          {psets.map((pset) => (
-            <div className="it-bim-block" key={pset.name}>
-              <div className="it-muted-text">{pset.name}</div>
-              <table className="it-dir">
-                <tbody>
-                  {pset.props.map((prop) => (
-                    <tr key={pset.name + ':' + prop.name}>
-                      <th>{prop.name}</th>
-                      <td className="it-num">{prop.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
+        <details className="it-bim-details">
+          <summary className="it-bim-details-summary">
+            [ PROPERTY SETS ] <span className="it-num">{psets.length}</span> ▸
+          </summary>
+          <div className="it-bim-details-body">
+            {psets.map((pset) => (
+              <div className="it-bim-block" key={pset.name}>
+                <div className="it-muted-text">{pset.name}</div>
+                <table className="it-dir">
+                  <tbody>
+                    {pset.props.map((prop) => (
+                      <tr key={pset.name + ':' + prop.name}>
+                        <th>{prop.name}</th>
+                        <td className="it-num">{prop.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        </details>
       ) : null}
     </section>
   )

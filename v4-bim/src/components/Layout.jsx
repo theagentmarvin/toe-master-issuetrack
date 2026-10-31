@@ -12,13 +12,25 @@ import { NavLink, Link, useLocation } from 'react-router-dom'
 import { useAppData } from '../state/AppDataProvider'
 import { todayISO } from '../lib/format'
 
-/* Primary action per route: [ label, id of the button to trigger ]. */
+/* Primary action per route: [ label, id of the button to trigger ].
+   BIM routes return a link target instead of a dead coral CTA. */
 function actionFor(pathname) {
-  if (pathname.startsWith('/project/')) {
-    return { label: '+ NEW ISSUE', target: 'btn-new-issue', section: 'REGISTER DETAIL' }
+  if (pathname === '/bim/demo') {
+    return { label: '↩ LANDING PAGE', target: '', to: '/', link: true, section: 'BIM' }
   }
   if (pathname.startsWith('/bim/')) {
-    return { label: '◈ 3D VIEWPORT', target: '', section: 'BIM' }
+    const segments = pathname.split('/')
+    const registerId = segments[2] || ''
+    return {
+      label: '↩ REGISTER VIEW',
+      target: '',
+      to: registerId ? '/project/' + registerId : '/',
+      link: true,
+      section: 'BIM',
+    }
+  }
+  if (pathname.startsWith('/project/')) {
+    return { label: '+ NEW ISSUE', target: 'btn-new-issue', section: 'REGISTER DETAIL' }
   }
   if (pathname.startsWith('/people')) {
     return { label: '+ NEW PERSON', target: 'btn-new-person', section: 'PEOPLE' }
@@ -47,14 +59,20 @@ export default function Layout({ children }) {
         <span className="it-meta it-num">
           {todayISO()} &nbsp;·&nbsp; {projects.length} REGISTERS &nbsp;·&nbsp; {people.length} PEOPLE
         </span>
-        <button
-          className="it-btn it-btn-primary"
-          type="button"
-          onClick={runPrimaryAction}
-          disabled={!action.target}
-        >
-          {action.label}
-        </button>
+        {action.link ? (
+          <Link className="it-btn" to={action.to}>
+            {action.label}
+          </Link>
+        ) : (
+          <button
+            className="it-btn it-btn-primary"
+            type="button"
+            onClick={runPrimaryAction}
+            disabled={!action.target}
+          >
+            {action.label}
+          </button>
+        )}
       </header>
 
       <div className="it-layout">

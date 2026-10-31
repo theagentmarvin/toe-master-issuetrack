@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IssueTrack — Design Preview [CHOKEPOINT]</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 45px); }
+  aside { border-right: 1px solid var(--it-hairline); background: var(--it-panel); padding: var(--it-sp-4); }
+  main { padding: var(--it-sp-6); max-width: 900px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--it-sp-4); }
+  .stats { display: flex; gap: var(--it-sp-8); margin: var(--it-sp-3) 0; }
+  .stat b { font-size: var(--it-fs-display); font-weight: 600; display: block; line-height: 1.2; }
+  .stat.crit b { color: var(--it-accent); }
+  .chips-row { display: flex; gap: var(--it-sp-2); align-items: center; }
+  .spacer { flex: 1; }
+  .muted { color: var(--it-muted); font-size: var(--it-fs-label); letter-spacing: var(--it-ls-label); text-transform: uppercase; }
+  h1.page { font-size: 22px; letter-spacing: 0.04em; margin: 0 0 var(--it-sp-2); }
+</style>
+</head>
+<body class="it-body">
+
+<header class="it-topbar">
+  <span class="it-title">ISSUETRACK</span>
+  <span class="muted">/ SITE ALPHA / REGISTER</span>
+  <span class="it-meta it-num">2026-10-31 08:10 &nbsp;·&nbsp; 3 OPEN &nbsp;·&nbsp; 1 CRIT</span>
+  <button class="it-btn it-btn-primary">+ NEW ISSUE</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="it-section-label" style="margin-top:0">[ NAV ]</div>
+    <nav class="it-nav">
+      <a href="#" class="it-active">▸ Projects</a>
+      <a href="#">Issues</a>
+      <a href="#">People</a>
+      <a href="#">Export</a>
+    </nav>
+
+    <div class="it-section-label">[ FILTERS ]</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label class="it-check"><input type="checkbox" checked> Open</label>
+      <label class="it-check"><input type="checkbox" checked> In&nbsp;Progress</label>
+      <label class="it-check"><input type="checkbox"> Resolved</label>
+      <label class="it-check"><input type="checkbox"> Closed</label>
+    </div>
+
+    <div class="it-section-label">[ LAYERS ]</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <label class="it-check"><input type="checkbox" checked> Priority</label>
+      <label class="it-check"><input type="checkbox"> Assignee</label>
+    </div>
+  </aside>
+
+  <main>
+    <h1 class="page">PROJECTS</h1>
+    <div class="stats">
+      <div class="stat"><b class="it-num">04</b><span class="muted">Registers</span></div>
+      <div class="stat"><b class="it-num">17</b><span class="muted">Open Issues</span></div>
+      <div class="stat crit"><b class="it-num">03</b><span class="muted">Critical</span></div>
+      <div class="stat"><b class="it-num">+2</b><span class="muted">Delta / 24H</span></div>
+    </div>
+
+    <div class="it-section-label">[ REGISTER ]</div>
+    <div class="grid-2">
+      <article class="it-card">
+        <div class="it-card-head">
+          <span class="it-label">P-001 / Tower North</span>
+          <span class="muted">↗</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span class="it-tile" style="background:var(--it-accent-soft);border-color:var(--it-accent)">TO</span>
+          <dl class="it-kv" style="flex:1">
+            <dt>Issues</dt><dd class="it-num">07 open</dd>
+            <dt>Lead</dt><dd>R. MARVIN</dd>
+            <dt>Updated</dt><dd class="it-num">14:30:07</dd>
+          </dl>
+          <span class="it-chip it-chip-crit">CRIT</span>
+        </div>
+      </article>
+
+      <article class="it-card">
+        <div class="it-card-head">
+          <span class="it-label">P-002 / Depot West</span>
+          <span class="muted">↗</span>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <span class="it-tile">DW</span>
+          <dl class="it-kv" style="flex:1">
+            <dt>Issues</dt><dd class="it-num">03 open</dd>
+            <dt>Lead</dt><dd>A. ARCHITECT</dd>
+            <dt>Updated</dt><dd class="it-num">09:12:44</dd>
+          </dl>
+          <span class="it-chip it-chip-warn">SCAN</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="it-section-label">[ ISSUE FEED ] <span class="muted">3 ACTIVE · 1 CRIT</span></div>
+    <div class="it-card" style="padding:0">
+      <div class="it-row it-selected" data-state="crit">
+        <span class="it-num muted">14:12</span>
+        <span style="flex:1"><b>Facade panel gap &gt; 18M</b><br><span class="muted">TOWER NORTH · ZONE 3</span></span>
+        <span class="it-chip it-chip-crit">CRIT</span>
+      </div>
+      <div class="it-row" data-state="warn">
+        <span class="it-num muted">14:05</span>
+        <span style="flex:1"><b>Rebar inspection overdue</b><br><span class="muted">DEPOT WEST · B2</span></span>
+        <span class="it-chip it-chip-warn">WARN</span>
+      </div>
+      <div class="it-row" data-state="info">
+        <span class="it-num muted">13:58</span>
+        <span style="flex:1"><b>Speed drop on pour schedule</b><br><span class="muted">-3.1 M²/HR</span></span>
+        <span class="it-chip">INFO</span>
+      </div>
+      <div class="it-row" data-state="ok" style="border-bottom:none">
+        <span class="it-num muted">13:41</span>
+        <span style="flex:1"><b>Queue cleared at gate N</b><br><span class="muted">V-12 · V-15</span></span>
+        <span class="it-chip it-chip-ok">DONE</span>
+      </div>
+    </div>
+
+    <div class="it-section-label">[ NEW ISSUE ]</div>
+    <form class="it-card" style="max-width:460px" onsubmit="return false">
+      <div class="it-field">
+        <label class="it-label" for="f-title">Title *</label>
+        <input class="it-input" id="f-title" placeholder="SHORT PROBLEM SUMMARY">
+        <div class="it-error">Name too short — min 5 chars</div>
+      </div>
+      <div class="it-field">
+        <label class="it-label" for="f-desc">Description</label>
+        <input class="it-input" id="f-desc" placeholder="DETAILS…">
+      </div>
+      <div class="grid-2">
+        <div class="it-field">
+          <label class="it-label" for="f-prio">Priority</label>
+          <input class="it-input" id="f-prio" value="HIGH">
+        </div>
+        <div class="it-field">
+          <label class="it-label" for="f-date">Due</label>
+          <input class="it-input" id="f-date" value="2026-11-04">
+        </div>
+      </div>
+      <label class="it-check" style="margin-bottom:12px"><input type="checkbox" checked> Notify assignee</label>
+      <div class="chips-row">
+        <button class="it-btn it-btn-primary">→ CREATE</button>
+        <button class="it-btn">CANCEL</button>
+        <span class="spacer"></span>
+        <button class="it-btn it-btn-danger">DELETE</button>
+      </div>
+    </form>
+  </main>
+</div>
+
+</body>
+</html>

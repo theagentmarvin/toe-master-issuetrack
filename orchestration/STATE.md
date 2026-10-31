@@ -13,8 +13,8 @@
 
 | Wave | Scope | Agent | Status |
 |------|-------|-------|--------|
-| 0-UX | Design system from reference image → design/DESIGN.md + tokens.css | webdev-marvin | running |
-| A | Exams 1+2: static app + vanilla JS (people page, 9 interactive features) | coder | pending (blocked on 0-UX) |
+| 0-UX | Design system from reference image → design/DESIGN.md + tokens.css | webdev-marvin | done |
+| A | Exams 1+2: static app + vanilla JS (people page, 9 interactive features) | coder | running |
 | A-gate | qa-marvin checklist review + Firebase deploy + form submission (exams 1+2 together) | qa-marvin | pending |
 | B | Exam 3: React + Firestore port | coder | pending |
 | C | Exam 4: TOC BIM viewer + ItemsFinder/palette/DataEnhancer/SmartViews | coder | pending |
@@ -25,4 +25,4 @@ Default UX styling = "Chokepoint" design system produced in wave 0. Promote to l
 
 ## Result log
 
-- (empty)
+- 0-UX done (webdev-marvin, run ac92a778): "Chokepoint" house style delivered — design/DESIGN.md (palette roles, mono type scale, component recipes, 12 imperative rules), design/tokens.css (CSS vars + .it-* classes, braces verified), design/preview.html (mock render). Palette: paper #FAFAF7 / ink #1B1B19 / coral #F0561E. Files spot-checked on disk.

@@ -53,6 +53,46 @@ function downloadJSON(data, filename) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+/* ------------------------------------------------------------------
+   Upload validation helpers (QA fix 4). Both import paths refuse junk
+   with a friendly, house-style message instead of crashing or silently
+   importing garbage.
+   ------------------------------------------------------------------ */
+
+/* A serialized ItemsFinder export is { data: SerializedFinderQuery[] }
+   (or a bare array). Every entry must carry a string guid + a queries
+   array — the exact shape ItemsFinder.export() produces. */
+function validateQueriesPayload(parsed) {
+  const result = Array.isArray(parsed) ? { data: parsed } : parsed
+  if (!result || typeof result !== 'object' || !Array.isArray(result.data)) {
+    return { ok: false, error: 'NOT A QUERIES FILE — EXPECTED {"data":[…] OR A BARE ARRAY' }
+  }
+  for (const entry of result.data) {
+    if (!entry || typeof entry.guid !== 'string' || !Array.isArray(entry.queries)) {
+      return { ok: false, error: 'MALFORMED QUERY — EACH ENTRY NEEDS guid + queries[]' }
+    }
+  }
+  return { ok: true, result }
+}
+
+/* A smart view definition is a JSON object with a name, a finderQuery
+   carrying a data array and a colorizations array. */
+function validateViewPayload(parsed) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { ok: false, error: 'NOT A VIEW FILE — EXPECTED A JSON OBJECT' }
+  }
+  const valid =
+    typeof parsed.name === 'string' &&
+    parsed.finderQuery &&
+    typeof parsed.finderQuery === 'object' &&
+    Array.isArray(parsed.finderQuery.data) &&
+    Array.isArray(parsed.colorizations)
+  if (!valid) {
+    return { ok: false, error: 'MALFORMED VIEW — NEEDS name, finderQuery.data[] AND colorizations[]' }
+  }
+  return { ok: true }
+}
+
 export default function BimPage() {
   const { id } = useParams()
   const { projects, loading } = useAppData()
@@ -208,14 +248,24 @@ export default function BimPage() {
     if (!engine) return
     const reader = new FileReader()
     reader.onload = () => {
+      let parsed
       try {
-        const parsed = JSON.parse(reader.result)
-        const result = Array.isArray(parsed) ? { data: parsed } : parsed
-        engine.importQueries(result)
+        parsed = JSON.parse(reader.result)
+      } catch {
+        report('IMPORT FAILED — NOT VALID JSON', 'crit')
+        return
+      }
+      const check = validateQueriesPayload(parsed)
+      if (!check.ok) {
+        report('IMPORT FAILED — ' + check.error, 'crit')
+        return
+      }
+      try {
+        engine.importQueries(check.result)
         setQueryNames(engine.getQueryNames())
         report('QUERIES IMPORTED — ' + engine.getQueryNames().length + ' TOTAL', 'ok')
       } catch (err) {
-        report('IMPORT FAILED — ' + (err.message || 'INVALID JSON'), 'crit')
+        report('IMPORT FAILED — ' + (err.message || 'INVALID QUERIES'), 'crit')
       }
     }
     reader.readAsText(file)
@@ -307,9 +357,12 @@ export default function BimPage() {
       engine.setColorizations(view.colorizations)
       setColorizations(engine.colorizations)
 
+      /* Re-run the FULL captured query set (not just the first query) so a
+         multi-query view restores everything that was on screen when it
+         was captured. */
       const names = engine.getQueryNames()
       if (names.length) {
-        const found = await engine.runStoredQuery(names[0])
+        const found = await engine.runAllStoredQueries()
         engine.setFinderHighlight(found)
         setFinderCount(engine.finderCount())
       }
@@ -365,14 +418,25 @@ export default function BimPage() {
     if (!engine || !id) return
     const reader = new FileReader()
     reader.onload = async () => {
+      let parsed
       try {
-        const parsed = JSON.parse(reader.result)
+        parsed = JSON.parse(reader.result)
+      } catch {
+        report('IMPORT FAILED — NOT VALID JSON', 'crit')
+        return
+      }
+      const check = validateViewPayload(parsed)
+      if (!check.ok) {
+        report('IMPORT FAILED — ' + check.error, 'crit')
+        return
+      }
+      try {
         const def = engine.smartViews.import(parsed)
         if (!def) throw new Error('INVALID VIEW')
         await createSmartView(id, def)
         report('VIEW IMPORTED — ' + def.name.toUpperCase(), 'ok')
       } catch (err) {
-        report('IMPORT FAILED — ' + (err.message || 'INVALID JSON'), 'crit')
+        report('IMPORT FAILED — ' + (err.message || 'INVALID VIEW'), 'crit')
       }
     }
     reader.readAsText(file)

@@ -299,8 +299,41 @@ export class BimEngine {
     return this.itemsFinder.export()
   }
 
+  /* ------------------------------------------------------------------
+     Import a serialized query set. `ItemsFinder.import()` keys each
+     imported query by its serialized `guid` (which may be a UUID from
+     another tool), so we re-key every instance by its own `name` — the
+     stored-queries list then shows the SAVED names, not raw ids, and
+     each stays runnable via `runStoredQuery(name)`.
+     ------------------------------------------------------------------ */
   importQueries(result) {
-    return this.itemsFinder.import(result)
+    const instances = this.itemsFinder.import(result)
+    const list = this.itemsFinder.list
+    for (const query of instances) {
+      const currentKey = list.getKey(query)
+      if (!currentKey) continue
+      const desired = typeof query.name === 'string' && query.name ? query.name : currentKey
+      if (desired !== currentKey) list.replaceKey(currentKey, desired, true)
+    }
+    return instances
+  }
+
+  /* ------------------------------------------------------------------
+     Run EVERY stored query and return the union of their results. Used
+     by Smart Views APPLY so a multi-query view restores the full set it
+     captured, not just the first query. (Union matches the "what is on
+     screen" semantics of colourising + querying several criteria.)
+     ------------------------------------------------------------------ */
+  async runAllStoredQueries() {
+    const merged = {}
+    for (const [, query] of this.itemsFinder.list) {
+      const result = await query.test({ force: true })
+      for (const [modelId, ids] of Object.entries(result || {})) {
+        if (!merged[modelId]) merged[modelId] = new Set()
+        for (const localId of ids) merged[modelId].add(localId)
+      }
+    }
+    return merged
   }
 
   /* ------------------------------------------------------------------

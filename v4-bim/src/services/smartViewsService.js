@@ -65,35 +65,37 @@ export async function fetchSmartViews(projectId) {
 }
 
 /* Create a smart view. The definition's own id becomes the document id so
-   an exported view keeps a stable identity across export/import cycles. */
+   an exported view keeps a stable identity across export/import cycles.
+
+   IMPORTANT: `sanitize()` is applied BEFORE the Firestore sentinels are
+   attached. `sanitize` does a JSON round-trip that would otherwise turn
+   `serverTimestamp()` into the literal `{_methodName:'serverTimestamp'}`
+   map and write a string instead of a real server timestamp. */
 export async function createSmartView(projectId, def) {
   const viewId = (def && typeof def.id === 'string' && def.id) || defaultId()
-  const payload = sanitize({
-    ...def,
-    id: viewId,
+  const clean = sanitize({ ...def, id: viewId })
+  await setDoc(doc(db, PROJECTS, projectId, SMART_VIEWS, viewId), {
+    name: clean.name,
+    finderQuery: clean.finderQuery,
+    colorizations: clean.colorizations,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
-  await setDoc(doc(db, PROJECTS, projectId, SMART_VIEWS, viewId), {
-    name: payload.name,
-    finderQuery: payload.finderQuery,
-    colorizations: payload.colorizations,
-    createdAt: payload.createdAt,
-    updatedAt: payload.updatedAt,
-  })
-  return { id: viewId, ...payload }
+  return { id: viewId, name: clean.name, finderQuery: clean.finderQuery, colorizations: clean.colorizations }
 }
 
-/* Update an existing smart view (the UPDATE button re-captures state). */
+/* Update an existing smart view (the UPDATE button re-captures state).
+   Same ordering rule as above: sanitize the payload first, then attach the
+   `updatedAt` sentinel so it reaches Firestore uncorrupted. */
 export async function updateSmartView(projectId, viewId, def) {
-  const payload = sanitize({ ...def, updatedAt: serverTimestamp() })
+  const clean = sanitize({ ...def })
   await updateDoc(doc(db, PROJECTS, projectId, SMART_VIEWS, viewId), {
-    name: payload.name,
-    finderQuery: payload.finderQuery,
-    colorizations: payload.colorizations,
-    updatedAt: payload.updatedAt,
+    name: clean.name,
+    finderQuery: clean.finderQuery,
+    colorizations: clean.colorizations,
+    updatedAt: serverTimestamp(),
   })
-  return { id: viewId, ...payload }
+  return { id: viewId, name: clean.name, finderQuery: clean.finderQuery, colorizations: clean.colorizations }
 }
 
 export async function deleteSmartView(projectId, viewId) {

@@ -24,7 +24,7 @@
    Everything degrades gracefully: no WebGL → a message, no crash loop.
    ===================================================================== */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAppData } from '../state/AppDataProvider'
 import { BimEngine } from '../bim/BimEngine'
 import { buildFinderQuery, FINDER_QUERY_KIND } from '../bim/finder'
@@ -119,6 +119,7 @@ function validateViewPayload(parsed) {
 export default function BimPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   /* Wave D — "/bim/demo" is the public, no-account demo. */
   const demoMode = id === 'demo'
@@ -590,37 +591,32 @@ export default function BimPage() {
     ? 'PUBLIC DEMO MODEL'
     : 'BIM — ' + (project ? project.name : 'REGISTER')
   const backTarget = demoMode ? '/' : project ? '/project/' + project.id : '/'
-  const backLabel = demoMode ? '← LANDING PAGE' : project ? '← BACK TO ' + project.name.toUpperCase() : '← ALL REGISTERS'
+  const backLabel = demoMode ? '↩ BACK' : '↩ BACK'
 
   const pinnedCount = pinnedIssues.length
 
+  /* Register selector (compact, top-right column) — swaps the viewer to a
+     different register without reloading the whole app. */
+  function handleRegisterChange(event) {
+    const value = event.target.value
+    navigate(value === 'demo' ? '/bim/demo' : '/bim/' + value)
+  }
+
   return (
     <>
-      <Link className="it-breadcrumb" to={backTarget}>
-        {backLabel}
-      </Link>
-
-      <div className="it-bim-head">
-        <h1 className="it-page-title" style={{ margin: 0 }}>
-          {pageTitle}
-        </h1>
-        {demoMode ? (
-          <span className="it-chip it-chip-info">NO ACCOUNT REQUIRED</span>
+      {/* One slim header row under the topbar (title + status inline). */}
+      <div className="it-bim-slimhead">
+        <span className="it-bim-slim-title">{pageTitle}</span>
+        {error ? (
+          <span className="it-bim-slim-status">OFFLINE</span>
         ) : (
-          <span className="it-muted-text it-num">{error ? 'OFFLINE' : status}</span>
+          <span className="it-bim-slim-status">{status}</span>
         )}
+        {demoMode ? <span className="it-chip it-chip-info">NO ACCOUNT REQUIRED</span> : null}
       </div>
 
-      {demoMode ? (
-        <p className="it-page-sub" style={{ marginBottom: 16 }}>
-          A public 3D viewport for the sample IFC model — selection, finder, palette, data
-          enhancer and smart views all work with no sign-up. Assigning an issue pins it here
-          and saves it to the shared demo data.
-        </p>
-      ) : null}
-
       {error ? (
-        <div className="it-empty">
+        <div className="it-empty" style={{ margin: 16 }}>
           <div className="it-status is-crit" role="alert">
             {error}
           </div>
@@ -629,31 +625,54 @@ export default function BimPage() {
           </p>
         </div>
       ) : (
-        <div className="it-bim-layout">
-          <div className="it-bim-viewport-card">
-            <div ref={containerRef} className="it-bim-viewport" />
-            <IssuePins
-              engine={ready ? engineRef.current : null}
-              issues={issues}
-              focusIssueId={focusIssueId}
-              onPinClick={handlePinClick}
-            />
-            <div className="it-bim-viewport-status">
-              <span className="it-chip it-bim-status-pill">{status}</span>
-              {ready && selection ? (
-                <span className="it-chip it-chip-crit">
-                  SEL #{selection.localId}
-                </span>
-              ) : null}
-              {pinnedCount ? (
-                <span className="it-chip it-chip-warn">
-                  {pinnedCount} PINNED
-                </span>
-              ) : null}
+        <div className="it-bim-mainrow">
+          <div className="it-bim-viewer">
+            <div className="it-bim-viewport-card">
+              <div ref={containerRef} className="it-bim-viewport" />
+              <IssuePins
+                engine={ready ? engineRef.current : null}
+                issues={issues}
+                focusIssueId={focusIssueId}
+                onPinClick={handlePinClick}
+              />
+              <div className="it-bim-viewport-status">
+                <span className="it-chip it-bim-status-pill">{status}</span>
+                {ready && selection ? (
+                  <span className="it-chip it-chip-crit">
+                    SEL #{selection.localId}
+                  </span>
+                ) : null}
+                {pinnedCount ? (
+                  <span className="it-chip it-chip-warn">
+                    {pinnedCount} PINNED
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
 
-          <div className="it-bim-side">
+          <aside className="it-bim-side">
+            {/* Compact register navigation (moved from the left nav). */}
+            <div className="it-bim-nav">
+              <span className="it-label">REGISTER:</span>
+              <select
+                className="it-select it-bim-register-select"
+                value={demoMode ? 'demo' : id}
+                onChange={handleRegisterChange}
+                aria-label="Open register"
+              >
+                <option value="demo">PUBLIC DEMO</option>
+                {projects.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+              <Link className="it-bim-back" to={backTarget}>
+                {backLabel}
+              </Link>
+            </div>
+
             {feedback.message ? (
               <div className="it-form-actions" key="fb">
                 <span className={'it-status' + (feedback.kind ? ' is-' + feedback.kind : '')} role="status">
@@ -728,7 +747,7 @@ export default function BimPage() {
               onExport={handleExportView}
               onImport={handleImportView}
             />
-          </div>
+          </aside>
         </div>
       )}
     </>

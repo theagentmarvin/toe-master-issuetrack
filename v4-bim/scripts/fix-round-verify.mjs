@@ -24,8 +24,8 @@ const CDP = 'http://127.0.0.1:18800'
 const APP = 'http://127.0.0.1:8741'
 const FS = 'https://firestore.googleapis.com/v1/projects/marvin-dev-c4ca4/databases/(default)/documents'
 
-/* Scaffold register (never the pristine REG-001). */
-const REG = 'REG-002'
+/* Scaffold register (never the pristine REG-001; layout round uses REG-003). */
+const REG = 'REG-003'
 const FS_TODOS = `${FS}/projects/${REG}/todos`
 const FS_VIEWS = `${FS}/projects/${REG}/smartViews`
 

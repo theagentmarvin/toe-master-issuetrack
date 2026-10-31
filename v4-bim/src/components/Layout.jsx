@@ -42,6 +42,8 @@ export default function Layout({ children }) {
   const { projects, people } = useAppData()
   const location = useLocation()
   const action = actionFor(location.pathname)
+  /* Wave D layout round — the BIM page is full-bleed (no left nav). */
+  const isBim = location.pathname.startsWith('/bim/')
 
   function runPrimaryAction() {
     const target = document.getElementById(action.target)
@@ -75,8 +77,12 @@ export default function Layout({ children }) {
         )}
       </header>
 
-      <div className="it-layout">
-        <aside className="it-side">
+      {isBim ? (
+        /* Full-bleed: the viewer owns the whole window below the topbar. */
+        <main className="it-bim-full">{children}</main>
+      ) : (
+        <div className="it-layout">
+          <aside className="it-side">
           <div className="it-section-label" style={{ marginTop: 0 }}>
             [ NAV ]
           </div>
@@ -118,6 +124,7 @@ export default function Layout({ children }) {
 
         <main className="it-main">{children}</main>
       </div>
+      )}
     </>
   )
 }

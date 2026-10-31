@@ -509,30 +509,66 @@ textarea.it-code { width: 100%; box-sizing: border-box; resize: vertical; }
   margin: var(--it-sp-4) 0;
 }
 
-/* ---------- BIM viewport + panels (Wave C / Exam 4) ---------- */
+/* ---------- BIM viewport + panels (Wave C/D) — full-bleed layout ---------- */
 
-.it-bim-head {
+/* Full-bleed BIM page shell (Layout renders this <main> on /bim/* routes). */
+.it-bim-full {
+  height: calc(100vh - 41px);
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--it-paper);
+}
+
+/* One slim header row under the topbar (title + status inline). */
+.it-bim-slimhead {
+  flex: none;
+  display: flex;
+  align-items: center;
   gap: var(--it-sp-3);
-  margin-bottom: var(--it-sp-3);
+  flex-wrap: wrap;
+  padding: var(--it-sp-2) var(--it-sp-4);
+  background: var(--it-panel);
+  border-bottom: var(--it-border);
 }
 
-.it-bim-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: var(--it-sp-4);
-  align-items: start;
+.it-bim-slim-title {
+  font-size: var(--it-fs-header);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--it-ink);
 }
 
-@media (max-width: 980px) {
-  .it-bim-layout { grid-template-columns: 1fr; }
+.it-bim-slim-status {
+  margin-left: auto;
+  font-size: var(--it-fs-label);
+  letter-spacing: var(--it-ls-label);
+  text-transform: uppercase;
+  color: var(--it-muted);
+}
+
+/* Viewer first: the row fills all remaining width + height. */
+.it-bim-mainrow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.it-bim-viewer {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  padding: var(--it-sp-3);
 }
 
 .it-bim-viewport-card {
   position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
   border: 1px solid var(--it-hairline);
   border-radius: var(--it-radius-card);
   background: var(--it-panel);
@@ -540,14 +576,65 @@ textarea.it-code { width: 100%; box-sizing: border-box; resize: vertical; }
 }
 
 .it-bim-viewport {
-  width: 100%;
-  height: 100%;
-  min-height: 560px;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
   background: var(--it-paper);
   cursor: crosshair;
 }
 
 .it-bim-viewport canvas { display: block; }
+
+/* Right panel: fixed width, full height, independently scrollable. */
+.it-bim-side {
+  flex: none;
+  width: 380px;
+  display: grid;
+  gap: var(--it-sp-3);
+  align-content: start;
+  overflow-y: auto;
+  padding: var(--it-sp-3);
+  border-left: var(--it-border);
+  background: var(--it-paper);
+  box-sizing: border-box;
+}
+
+/* Compact register navigation at the top of the right panel. */
+.it-bim-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--it-sp-2);
+  flex-wrap: wrap;
+}
+
+.it-bim-register-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.it-bim-back {
+  font-size: var(--it-fs-label);
+  letter-spacing: var(--it-ls-label);
+  text-transform: uppercase;
+  color: var(--it-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.it-bim-back:hover { color: var(--it-accent); }
+
+/* Stack the panels below a ~60vh viewer on narrow screens (no overflow). */
+@media (max-width: 980px) {
+  .it-bim-mainrow { flex-direction: column; }
+  .it-bim-viewer { flex: none; min-height: 60vh; }
+  .it-bim-side {
+    width: auto;
+    max-height: none;
+    border-left: none;
+    border-top: var(--it-border);
+  }
+}
 
 .it-bim-viewport-status {
   position: absolute;
@@ -563,9 +650,7 @@ textarea.it-code { width: 100%; box-sizing: border-box; resize: vertical; }
   display: grid;
   gap: var(--it-sp-3);
   align-content: start;
-  max-height: calc(100vh - 130px);
-  overflow: auto;
-  padding-right: var(--it-sp-1);
+  overflow-y: auto;
 }
 
 .it-bim-panel { display: grid; gap: var(--it-sp-3); }

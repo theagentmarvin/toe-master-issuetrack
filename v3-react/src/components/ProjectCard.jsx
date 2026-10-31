@@ -14,7 +14,7 @@ import { projectState } from '../lib/constants'
 export default function ProjectCard({ project, todos = [], lead, onEdit, onDelete }) {
   const open = todos.filter((todo) => todo.status !== 'done').length
   const blocked = todos.filter((todo) => todo.status === 'blocked').length
-  const state = projectState(project, todos.length)
+  const state = projectState(project, todos)
 
   return (
     <article className="it-card it-project-card" data-project-id={project.id}>

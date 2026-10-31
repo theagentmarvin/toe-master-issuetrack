@@ -23,6 +23,7 @@ export default function ProjectsPage() {
   const [todoMap, setTodoMap] = useState({})
   const [editing, setEditing] = useState(null)
   const [dataStatus, setDataStatus] = useState({ message: '', kind: '' })
+  const [readError, setReadError] = useState('')
   const [importText, setImportText] = useState('')
   const [exportPreview, setExportPreview] = useState('')
 
@@ -31,16 +32,35 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     let alive = true
+
     async function loadTodos() {
+      /* DEFECT 4 — every read is guarded: one denied/failed
+         subcollection must not reject the whole batch. The results that
+         did arrive are kept and the failure is reported to the user. */
       const entries = await Promise.all(
         projects.map(async (project) => {
-          const todos = await fetchTodos(project.id)
-          return [project.id, todos]
+          try {
+            const todos = await fetchTodos(project.id)
+            return { id: project.id, todos, error: '' }
+          } catch (err) {
+            return { id: project.id, todos: [], error: err.message }
+          }
         }),
       )
       if (!alive) return
-      setTodoMap(Object.fromEntries(entries))
+
+      setTodoMap(Object.fromEntries(entries.map((entry) => [entry.id, entry.todos])))
+
+      const failed = entries.filter((entry) => entry.error)
+      if (failed.length) {
+        setReadError(
+          'ISSUE COUNTS PARTIAL — ' + failed.length + ' REGISTER(S) COULD NOT BE READ (' + failed[0].error + ')',
+        )
+      } else {
+        setReadError('')
+      }
     }
+
     if (projects.length) loadTodos()
     return () => {
       alive = false
@@ -164,6 +184,12 @@ export default function ProjectsPage() {
       {error ? (
         <div className="it-form-actions">
           <StatusBanner message={error} kind="crit" />
+        </div>
+      ) : null}
+
+      {readError ? (
+        <div className="it-form-actions">
+          <StatusBanner message={readError} kind="crit" />
         </div>
       ) : null}
 

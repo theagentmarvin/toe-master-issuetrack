@@ -18,24 +18,40 @@ export default function PeoplePage() {
   const [editing, setEditing] = useState(null)
   const [issueCounts, setIssueCounts] = useState({})
   const [status, setStatus] = useState({ message: '', kind: '' })
+  const [readError, setReadError] = useState('')
 
   /* How many issues each person carries (across every register). */
   const projectKey = projects.map((project) => project.id).join('|')
 
   useEffect(() => {
     let alive = true
+
     async function countIssues() {
+      /* DEFECT 4 — every read is guarded: a failed subcollection read
+         must not reject the whole batch. The counts that did arrive are
+         kept and the failure is reported to the user. */
       const counts = {}
+      const failures = []
       for (const project of projects) {
-        const todos = await fetchTodos(project.id)
-        todos.forEach((todo) => {
-          if (!todo.assigneeId) return
-          counts[todo.assigneeId] = (counts[todo.assigneeId] || 0) + 1
-        })
+        try {
+          const todos = await fetchTodos(project.id)
+          todos.forEach((todo) => {
+            if (!todo.assigneeId) return
+            counts[todo.assigneeId] = (counts[todo.assigneeId] || 0) + 1
+          })
+        } catch (err) {
+          failures.push(project.id + ': ' + err.message)
+        }
       }
       if (!alive) return
       setIssueCounts(counts)
+      setReadError(
+        failures.length
+          ? 'ISSUE COUNTS PARTIAL — ' + failures.length + ' REGISTER(S) COULD NOT BE READ (' + failures[0] + ')'
+          : '',
+      )
     }
+
     if (projects.length) countIssues()
     return () => {
       alive = false
@@ -71,6 +87,12 @@ export default function PeoplePage() {
       {error ? (
         <div className="it-form-actions">
           <StatusBanner message={error} kind="crit" />
+        </div>
+      ) : null}
+
+      {readError ? (
+        <div className="it-form-actions">
+          <StatusBanner message={readError} kind="crit" />
         </div>
       ) : null}
 

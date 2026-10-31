@@ -8,7 +8,7 @@
      <TodoForm>, all reading/writing the `todos` subcollection
                                                        (Exam 3, items 2+3)
    ===================================================================== */
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAppData } from '../state/AppDataProvider'
 import { iconLetters, formatDate } from '../lib/format'
@@ -22,6 +22,10 @@ export default function ProjectDetailsPage() {
   const { projects, people, loading, error } = useAppData()
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState({ message: '', kind: '' })
+  /* The issues of this register, lifted from <ProjectTasksList> so the
+     state chip below is computed from the REAL todo count. */
+  const [todos, setTodos] = useState([])
+  const handleTodosChange = useCallback((incoming) => setTodos(incoming), [])
 
   const project = projects.find((item) => item.id === id)
   const lead = project ? people.find((person) => person.id === project.leadId) : null
@@ -42,7 +46,7 @@ export default function ProjectDetailsPage() {
     )
   }
 
-  const state = projectState(project)
+  const state = projectState(project, todos)
 
   return (
     <>
@@ -124,7 +128,7 @@ export default function ProjectDetailsPage() {
 
       {/* EXAM 3 — <ProjectTasksList>: ToDo cards + <SearchBox> + <TodoForm>. */}
       <div className="it-section-label">[ ISSUES ]</div>
-      <ProjectTasksList projectId={project.id} />
+      <ProjectTasksList projectId={project.id} onTodosChange={handleTodosChange} />
     </>
   )
 }

@@ -79,12 +79,19 @@ export function isValidPriority(priority) {
   return PRIORITIES.some((item) => item.id === priority)
 }
 
-/* Overall state of a register, shown as a chip on the cards. */
-export function projectState(project, todoCount = 0) {
-  const todos = Array.isArray(project.todos) ? project.todos : []
-  const total = todoCount || todos.length
-  const blocked = todos.filter((todo) => todo.status === 'blocked').length
-  const open = todos.filter((todo) => todo.status !== 'done').length
+/* Overall state of a register, shown as a chip on the cards.
+   The issues live in a Firestore SUBCOLLECTION, so they are always
+   passed in explicitly — `project.todos` is never populated in this
+   build (that was the Wave A shape). */
+export function projectState(project, todos = []) {
+  const list = Array.isArray(todos)
+    ? todos
+    : Array.isArray(project?.todos)
+      ? project.todos
+      : []
+  const total = list.length
+  const blocked = list.filter((todo) => todo.status === 'blocked').length
+  const open = list.filter((todo) => todo.status !== 'done').length
   if (blocked > 0) return { label: 'BLOCKED', chip: 'it-chip it-chip-crit' }
   if (open > 0) return { label: 'ACTIVE', chip: 'it-chip it-chip-warn' }
   if (total > 0) return { label: 'SETTLED', chip: 'it-chip it-chip-ok' }

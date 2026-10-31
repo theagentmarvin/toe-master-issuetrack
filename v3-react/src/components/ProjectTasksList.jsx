@@ -35,7 +35,7 @@ function matches(todo, query, assigneeName) {
   return haystack.includes(needle)
 }
 
-export default function ProjectTasksList({ projectId }) {
+export default function ProjectTasksList({ projectId, onTodosChange }) {
   const { people } = useAppData()
   const [todos, setTodos] = useState([])
   const [query, setQuery] = useState('')
@@ -61,6 +61,9 @@ export default function ProjectTasksList({ projectId }) {
       (incoming) => {
         setTodos(incoming)
         setLoading(false)
+        /* Lift the issues to the details page so its state chip can be
+           computed from the REAL todo count (defect 5). */
+        if (onTodosChange) onTodosChange(incoming)
       },
       (err) => {
         setStatus({ message: 'FIRESTORE READ FAILED — ' + err.message, kind: 'crit' })
@@ -68,7 +71,7 @@ export default function ProjectTasksList({ projectId }) {
       },
     )
     return stop
-  }, [projectId])
+  }, [projectId, onTodosChange])
 
   const personById = useMemo(() => {
     const map = {}
@@ -118,11 +121,16 @@ export default function ProjectTasksList({ projectId }) {
   /* The form wrote to Firestore → refresh the local list right away
      (the live subscription confirms it a moment later). */
   function handleSaved(todo, mode) {
-    setTodos((current) =>
-      mode === 'update'
-        ? current.map((item) => (item.id === todo.id ? { ...item, ...todo } : item))
-        : [...current, { ...todo, _pending: true }],
-    )
+    setTodos((current) => {
+      if (mode === 'update') {
+        return current.map((item) => (item.id === todo.id ? { ...item, ...todo } : item))
+      }
+      /* DEFECT 1 — the live subscription usually already delivered the
+         new document (the write is local to the Firestore client), so
+         appending it again would show the same card twice. */
+      if (current.some((item) => item.id === todo.id)) return current
+      return [...current, { ...todo, _pending: true }]
+    })
     setEditing(null)
     setFormOpen(false)
   }

@@ -58,13 +58,19 @@ export default function ProjectsForm({
   const [busy, setBusy] = useState(false)
 
   const isEdit = mode === 'edit' && project
+  /* The register being edited — only its ID matters for re-seeding. */
+  const projectId = project?.id || null
 
-  /* Re-fill the form when the register being edited changes. */
+  /* Re-fill the form when the EDIT TARGET changes.
+     DEFECT 6 — the effect is keyed on `projectId` only: the register
+     object itself is replaced by every Firestore snapshot, and
+     re-seeding on each snapshot wiped the fields while typing. */
   useEffect(() => {
     setValues(valuesFromProject(project))
     setNameError('')
     setStatus({ message: '', kind: '' })
-  }, [project])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
 
   function setField(field, value) {
     setValues((previous) => ({ ...previous, [field]: value }))

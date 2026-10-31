@@ -199,6 +199,7 @@ export default function ProjectTasksList({ projectId, onTodosChange }) {
             key={todo.id}
             todo={todo}
             assignee={personById[todo.assigneeId]}
+            projectId={projectId}
             onEdit={startEdit}
             onDelete={handleDelete}
             onStatusChange={handleStatusChange}

@@ -1,5 +1,5 @@
 /* =====================================================================
-   IssueTrack — BIM page (route "/bim/:projectId") — Wave C / Exam 4.
+   IssueTrack — BIM page (routes "/bim/:projectId" and "/bim/demo").
    ---------------------------------------------------------------------
    A register (project) gets a 3D viewport with the sample model loaded
    through That Open Components, plus the four Exam-4 panels:
@@ -10,10 +10,18 @@
      4. Smart Views    — named views (query + colours), APPLY/UPDATE,
                          export/import definitions, Firestore persistence
 
+   Wave D adds:
+     • "/bim/demo"  — a PUBLIC demo (no account, no login, first paint
+       never waits on Firestore; writes go to the demo register REG-001).
+     • ASSIGN ISSUE — pin an issue to a selected element (bimReference).
+     • 3D issue pins— one status-coloured pin per pinned issue, clickable,
+       surviving orbit/zoom, disposed on route exit.
+     • ?issue=      — deep link that selects the element + focuses its pin.
+
    Everything degrades gracefully: no WebGL → a message, no crash loop.
    ===================================================================== */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useAppData } from '../state/AppDataProvider'
 import { BimEngine } from '../bim/BimEngine'
 import { buildFinderQuery, FINDER_QUERY_KIND } from '../bim/finder'
@@ -22,12 +30,19 @@ import ColorsPalette from '../components/ColorsPalette'
 import DataEnhancerPanel from '../components/DataEnhancerPanel'
 import SmartViewsPanel from '../components/SmartViewsPanel'
 import SelectionPanel from '../components/SelectionPanel'
+import AssignIssuePanel from '../components/AssignIssuePanel'
+import IssuePins from '../components/IssuePins'
+import { statusInfo, priorityInfo } from '../lib/constants'
+import { subscribeTodos } from '../services/todosService'
 import {
   subscribeSmartViews,
   createSmartView,
   updateSmartView,
   deleteSmartView,
 } from '../services/smartViewsService'
+
+/* The public demo register — the ONLY place the demo route writes. */
+const DEMO_PROJECT_ID = 'REG-001'
 
 /* Shape the raw scan (Sets/Maps) into plain data for the dropdowns. */
 function shapeScan(scan) {
@@ -95,11 +110,19 @@ function validateViewPayload(parsed) {
 
 export default function BimPage() {
   const { id } = useParams()
-  const { projects, loading } = useAppData()
-  const project = projects.find((item) => item.id === id)
+  const [searchParams] = useSearchParams()
+
+  /* Wave D — "/bim/demo" is the public, no-account demo. */
+  const demoMode = id === 'demo'
+  const projectId = demoMode ? DEMO_PROJECT_ID : id
+  const focusIssueId = searchParams.get('issue') || ''
+
+  const { projects, people, loading } = useAppData()
+  const project = projects.find((item) => item.id === projectId)
 
   const containerRef = useRef(null)
   const engineRef = useRef(null)
+  const issuesRef = useRef([])
 
   const [status, setStatus] = useState('STARTING BIM VIEWPORT…')
   const [error, setError] = useState('')
@@ -113,9 +136,20 @@ export default function BimPage() {
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState({ message: '', kind: '' })
   const [views, setViews] = useState([])
+  /* Wave D — the register's issues (for the 3D pins) + the pinned issue
+     currently shown in the detail strip. */
+  const [issues, setIssues] = useState([])
+  const [activeIssue, setActiveIssue] = useState(null)
+
+  /* Keep the live issue list reachable from the ?issue= focus effect. */
+  useEffect(() => {
+    issuesRef.current = issues
+  }, [issues])
 
   /* ------------------------------------------------------------------
-     Create + load the BIM engine once per mount.
+     Create + load the BIM engine once per mount. First paint of the
+     model never waits on Firestore — this routine only touches the local
+     IFC file, the WASM and the worker.
      ------------------------------------------------------------------ */
   useEffect(() => {
     const container = containerRef.current
@@ -163,17 +197,46 @@ export default function BimPage() {
   }, [])
 
   /* ------------------------------------------------------------------
+     Live issue subscription (Wave D) — feeds the 3D pin overlay. Runs in
+     the background; the viewport paints before it ever resolves.
+     ------------------------------------------------------------------ */
+  useEffect(() => {
+    if (!projectId) return undefined
+    return subscribeTodos(
+      projectId,
+      (incoming) => setIssues(incoming),
+      (err) => setFeedback({ message: 'ISSUES READ FAILED — ' + err.message, kind: 'crit' }),
+    )
+  }, [projectId])
+
+  /* ------------------------------------------------------------------
+     ?issue=<todoId> deep link: once the model is ready AND that pinned
+     issue has arrived, select its element and focus its pin.
+     ------------------------------------------------------------------ */
+  useEffect(() => {
+    if (!ready || !focusIssueId) return
+    const engine = engineRef.current
+    if (!engine) return
+    const issue = issuesRef.current.find((item) => item.id === focusIssueId)
+    if (!issue || !issue.bimReference || !issue.bimReference.worldPosition) return
+    const br = issue.bimReference
+    engine.resolveSelection(br.modelId, br.localId).then(() => {
+      setActiveIssue(issue)
+    })
+  }, [ready, focusIssueId])
+
+  /* ------------------------------------------------------------------
      Live smart-views subscription — stored views populate the table the
      moment the project is opened (Exam 4.4).
      ------------------------------------------------------------------ */
   useEffect(() => {
-    if (!id) return undefined
+    if (!projectId) return undefined
     return subscribeSmartViews(
-      id,
+      projectId,
       (incoming) => setViews(incoming),
       (err) => setFeedback({ message: 'VIEWS READ FAILED — ' + err.message, kind: 'crit' }),
     )
-  }, [id])
+  }, [projectId])
 
   const report = useCallback((message, kind) => setFeedback({ message, kind }), [])
 
@@ -327,7 +390,7 @@ export default function BimPage() {
      ================================================================== */
   async function handleCaptureView(name) {
     const engine = engineRef.current
-    if (!engine || !id) return
+    if (!engine || !projectId) return
     setBusy(true)
     try {
       const def = engine.smartViews.capture({
@@ -335,7 +398,7 @@ export default function BimPage() {
         finderQuery: engine.exportQueries(),
         colorizations: engine.colorizations,
       })
-      const saved = await createSmartView(id, def)
+      const saved = await createSmartView(projectId, def)
       report('VIEW CAPTURED — ' + saved.name.toUpperCase(), 'ok')
     } catch (err) {
       report('CAPTURE FAILED — ' + err.message, 'crit')
@@ -377,7 +440,7 @@ export default function BimPage() {
 
   async function handleUpdateView(view) {
     const engine = engineRef.current
-    if (!engine || !id) return
+    if (!engine || !projectId) return
     setBusy(true)
     try {
       const def = engine.smartViews.capture({
@@ -387,7 +450,7 @@ export default function BimPage() {
         finderQuery: engine.exportQueries(),
         colorizations: engine.colorizations,
       })
-      await updateSmartView(id, view.id, def)
+      await updateSmartView(projectId, view.id, def)
       report('VIEW UPDATED — ' + view.name.toUpperCase(), 'ok')
     } catch (err) {
       report('UPDATE FAILED — ' + err.message, 'crit')
@@ -398,9 +461,9 @@ export default function BimPage() {
 
   async function handleDeleteView(view) {
     if (!window.confirm('DELETE VIEW ' + view.name.toUpperCase() + '?')) return
-    if (!id) return
+    if (!projectId) return
     try {
-      await deleteSmartView(id, view.id)
+      await deleteSmartView(projectId, view.id)
       report('VIEW DELETED', 'warn')
     } catch (err) {
       report('DELETE FAILED — ' + err.message, 'crit')
@@ -415,7 +478,7 @@ export default function BimPage() {
 
   function handleImportView(file) {
     const engine = engineRef.current
-    if (!engine || !id) return
+    if (!engine || !projectId) return
     const reader = new FileReader()
     reader.onload = async () => {
       let parsed
@@ -433,13 +496,28 @@ export default function BimPage() {
       try {
         const def = engine.smartViews.import(parsed)
         if (!def) throw new Error('INVALID VIEW')
-        await createSmartView(id, def)
+        await createSmartView(projectId, def)
         report('VIEW IMPORTED — ' + def.name.toUpperCase(), 'ok')
       } catch (err) {
         report('IMPORT FAILED — ' + (err.message || 'INVALID VIEW'), 'crit')
       }
     }
     reader.readAsText(file)
+  }
+
+  /* ==================================================================
+     Wave D — issue pinning.
+     ================================================================== */
+  async function handlePinClick(issue) {
+    const engine = engineRef.current
+    if (engine && issue.bimReference) {
+      await engine.resolveSelection(issue.bimReference.modelId, issue.bimReference.localId)
+    }
+    setActiveIssue(issue)
+  }
+
+  function handleAssigned(saved) {
+    setActiveIssue(saved)
   }
 
   const selectedColor = useMemo(() => {
@@ -450,18 +528,39 @@ export default function BimPage() {
     return entry ? entry.color : null
   }, [selection, colorizations])
 
+  const pageTitle = demoMode
+    ? 'PUBLIC DEMO MODEL'
+    : 'BIM — ' + (project ? project.name : 'REGISTER')
+  const backTarget = demoMode ? '/' : project ? '/project/' + project.id : '/'
+  const backLabel = demoMode ? '← LANDING PAGE' : project ? '← BACK TO ' + project.name.toUpperCase() : '← ALL REGISTERS'
+
+  const activeStatus = activeIssue ? statusInfo(activeIssue.status) : null
+  const activePriority = activeIssue ? priorityInfo(activeIssue.priority) : null
+
   return (
     <>
-      <Link className="it-breadcrumb" to={project ? '/project/' + project.id : '/'}>
-        ← {project ? 'BACK TO ' + project.name.toUpperCase() : 'ALL REGISTERS'}
+      <Link className="it-breadcrumb" to={backTarget}>
+        {backLabel}
       </Link>
 
       <div className="it-bim-head">
         <h1 className="it-page-title" style={{ margin: 0 }}>
-          BIM — {project ? project.name : 'REGISTER'}
+          {pageTitle}
         </h1>
-        <span className="it-muted-text it-num">{error ? 'OFFLINE' : status}</span>
+        {demoMode ? (
+          <span className="it-chip it-chip-crit">NO ACCOUNT REQUIRED</span>
+        ) : (
+          <span className="it-muted-text it-num">{error ? 'OFFLINE' : status}</span>
+        )}
       </div>
+
+      {demoMode ? (
+        <p className="it-page-sub" style={{ marginBottom: 16 }}>
+          A public 3D viewport for the sample IFC model — selection, finder, palette, data
+          enhancer and smart views all work with no sign-up. Assigning an issue pins it here
+          and saves it to the shared demo data.
+        </p>
+      ) : null}
 
       {error ? (
         <div className="it-empty">
@@ -476,11 +575,22 @@ export default function BimPage() {
         <div className="it-bim-layout">
           <div className="it-bim-viewport-card">
             <div ref={containerRef} className="it-bim-viewport" />
+            <IssuePins
+              engine={ready ? engineRef.current : null}
+              issues={issues}
+              focusIssueId={focusIssueId}
+              onPinClick={handlePinClick}
+            />
             <div className="it-bim-viewport-status">
               <span className="it-chip">{status}</span>
               {ready && selection ? (
                 <span className="it-chip it-chip-crit">
                   SEL #{selection.localId}
+                </span>
+              ) : null}
+              {issues.filter((issue) => issue.bimReference && issue.bimReference.worldPosition).length ? (
+                <span className="it-chip it-chip-warn">
+                  {issues.filter((issue) => issue.bimReference && issue.bimReference.worldPosition).length} PINNED
                 </span>
               ) : null}
             </div>
@@ -495,7 +605,41 @@ export default function BimPage() {
               </div>
             ) : null}
 
+            {/* Wave D — pinned-issue detail strip (pin click / deep link). */}
+            {activeIssue ? (
+              <section className="it-card it-bim-panel" data-testid="pinned-issue">
+                <div className="it-card-head">
+                  <span className="it-label">[ PINNED ISSUE ]</span>
+                  <span className="it-num it-muted-text">{activeIssue.id}</span>
+                </div>
+                <div className="it-todo-desc" style={{ color: 'var(--it-ink)', fontWeight: 600 }}>
+                  {activeIssue.title}
+                </div>
+                {activeIssue.description ? (
+                  <p className="it-todo-desc">{activeIssue.description}</p>
+                ) : null}
+                <div className="it-todo-chips">
+                  {activePriority ? <span className={'it-chip ' + activePriority.chip}>{activePriority.label}</span> : null}
+                  {activeStatus ? <span className={'it-chip ' + activeStatus.chip}>{activeStatus.label}</span> : null}
+                </div>
+                <div className="it-form-actions">
+                  <Link className="it-btn" to={'/project/' + projectId}>
+                    → OPEN IN REGISTER
+                  </Link>
+                </div>
+              </section>
+            ) : null}
+
             <SelectionPanel selection={selection} />
+
+            {/* Wave D — ASSIGN ISSUE action on the selected element. */}
+            <AssignIssuePanel
+              projectId={projectId}
+              selection={selection}
+              people={people}
+              onSaved={handleAssigned}
+            />
+
             <ItemsFinderPanel
               propertySets={scan ? scan.propertySets : []}
               propertiesBySet={scan ? scan.propertiesBySet : {}}

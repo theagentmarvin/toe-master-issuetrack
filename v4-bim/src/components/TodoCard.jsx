@@ -7,10 +7,11 @@
      • left rail (2 segments) → status colour (top) + priority colour
      • chips            → status chip + priority chip
    ===================================================================== */
+import { Link } from 'react-router-dom'
 import { STATUSES, statusInfo, priorityInfo } from '../lib/constants'
 import { formatDate, shortId } from '../lib/format'
 
-export default function TodoCard({ todo, assignee, onEdit, onDelete, onStatusChange }) {
+export default function TodoCard({ todo, assignee, projectId, onEdit, onDelete, onStatusChange }) {
   const status = statusInfo(todo.status)
   const priority = priorityInfo(todo.priority)
 
@@ -26,6 +27,17 @@ export default function TodoCard({ todo, assignee, onEdit, onDelete, onStatusCha
         <div className="it-todo-head">
           <span className="it-todo-title">{todo.title}</span>
           <span className="it-todo-chips">
+            {/* Wave D — a BIM badge on pinned issues, deep-linking to the
+                3D viewer focused on the pin. */}
+            {todo.bimReference ? (
+              <Link
+                className="it-chip it-bim-badge"
+                to={'/bim/' + projectId + '?issue=' + todo.id}
+                title="Pinned in the 3D viewport"
+              >
+                ◈ BIM
+              </Link>
+            ) : null}
             <span className={'it-chip ' + priority.chip}>{priority.label}</span>
             <span className={'it-chip ' + status.chip}>{status.label}</span>
           </span>

@@ -69,6 +69,10 @@ export default function Layout({ children }) {
             <NavLink to="/people" className={({ isActive }) => (isActive ? 'it-active' : '')}>
               ▸ People
             </NavLink>
+            {/* Wave D — public BIM demo, no account needed. */}
+            <NavLink to="/bim/demo" className={({ isActive }) => (isActive ? 'it-active' : '')}>
+              ◈ BIM Demo
+            </NavLink>
           </nav>
 
           <div className="it-section-label">[ REGISTERS ]</div>

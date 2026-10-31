@@ -226,10 +226,10 @@ export class BimEngine {
       return
     }
 
-    await this.resolveSelection(hit.fragments.modelId, hit.localId)
+    await this.resolveSelection(hit.fragments.modelId, hit.localId, hit.point)
   }
 
-  async resolveSelection(modelId, localId) {
+  async resolveSelection(modelId, localId, fallbackPoint) {
     if (!this.model) return null
     let data = null
     try {
@@ -238,11 +238,60 @@ export class BimEngine {
     } catch {
       data = null
     }
+
+    /* Wave D — a STABLE world position (box centre) for the 3D pin, so the
+       stored reference re-projects to the same spot after a reload. The
+       raycast surface point is only a fallback when the box read fails. */
+    let worldPosition = await this.getItemWorldPosition(modelId, localId)
+    if (!worldPosition && fallbackPoint && Number.isFinite(fallbackPoint.x)) {
+      worldPosition = { x: fallbackPoint.x, y: fallbackPoint.y, z: fallbackPoint.z }
+    }
+
+    const guid = data && data._guid ? data._guid.value : null
+    const category = data && data._category ? data._category.value : ''
+    const name = data && data.Name ? data.Name.value : ''
+    const label = String(name || category || 'ELEMENT ' + localId)
+
     this._selectionKey = modelId + ':' + localId
-    const selection = { modelId, localId, data }
+    const selection = { modelId, localId, data, worldPosition, guid, label }
     this.onSelect(selection)
     await this.applyVisualState()
     return selection
+  }
+
+  /* ------------------------------------------------------------------
+     Wave D — world-space centre of one item (used for 3D pins).
+     ------------------------------------------------------------------ */
+  async getItemWorldPosition(modelId, localId) {
+    try {
+      const positions = await this.fragments.getPositions({ [modelId]: [Number(localId)] })
+      if (positions && positions.length) {
+        const p = positions[0]
+        if (p && Number.isFinite(p.x)) return { x: p.x, y: p.y, z: p.z }
+      }
+    } catch {
+      /* ignore — the caller falls back on the raycast surface point */
+    }
+    return null
+  }
+
+  /* ------------------------------------------------------------------
+     Wave D — project a world position to NDC with the ACTIVE camera
+     (perspective or orthographic). The DOM pin overlay maps NDC → pixels
+     against its own box, so no canvas-rect origin mismatch can occur.
+     ------------------------------------------------------------------ */
+  projectWorldToNDC(worldPos) {
+    if (!worldPos || typeof worldPos.x !== 'number' || !this.camera || !this.camera.three) {
+      return null
+    }
+    try {
+      this.camera.three.updateMatrixWorld()
+      const v = new THREE.Vector3(worldPos.x, worldPos.y, worldPos.z)
+      v.project(this.camera.three)
+      return { x: v.x, y: v.y, z: v.z }
+    } catch {
+      return null
+    }
   }
 
   /* ------------------------------------------------------------------

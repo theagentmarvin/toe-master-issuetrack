@@ -36,6 +36,14 @@ function toTodo(snapshot) {
     assigneeId: data.assigneeId || null,
     due: data.due || '',
     createdAt: toISO(data.createdAt),
+    /* Wave D — a todo pinned in the 3D viewer carries a bimReference
+       {modelId, localId, guid, label, worldPosition{x,y,z}}. */
+    bimReference:
+      data.bimReference &&
+      typeof data.bimReference === 'object' &&
+      data.bimReference.localId !== undefined
+        ? data.bimReference
+        : null,
   }
 }
 
@@ -56,7 +64,8 @@ export async function fetchTodos(projectId) {
   return snapshot.docs.map(toTodo)
 }
 
-/* Create an issue (Exam 2.6 + Exam 3: written to Firestore). */
+/* Create an issue (Exam 2.6 + Exam 3: written to Firestore).
+   Wave D — a 3D-pinned issue additionally stores its `bimReference`. */
 export async function createTodo(projectId, values) {
   const payload = {
     title: String(values.title || '').trim(),
@@ -66,6 +75,10 @@ export async function createTodo(projectId, values) {
     assigneeId: values.assigneeId || null,
     due: String(values.due || '').trim(),
     createdAt: serverTimestamp(),
+  }
+  /* The reference is a plain JSON object; Firestore stores it nested. */
+  if (values.bimReference && typeof values.bimReference === 'object') {
+    payload.bimReference = values.bimReference
   }
   const ref = await addDoc(collection(db, PROJECTS, projectId, TODOS), payload)
   return { id: ref.id, ...payload, createdAt: '' }

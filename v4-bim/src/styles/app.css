@@ -643,3 +643,110 @@ textarea.it-code { width: 100%; box-sizing: border-box; resize: vertical; }
 }
 
 a.it-btn { text-decoration: none; }
+
+/* =========================================================================
+   Wave D — public BIM demo CTA + 3D issue pins + BIM badge
+   ========================================================================= */
+
+.it-demo-cta {
+  display: flex;
+  align-items: center;
+  gap: var(--it-sp-4);
+  justify-content: space-between;
+  flex-wrap: wrap;
+  background: var(--it-panel);
+  border: 1px solid var(--it-hairline);
+  border-radius: var(--it-radius-card);
+  padding: var(--it-sp-4);
+  margin: var(--it-sp-4) 0 var(--it-sp-2);
+}
+
+.it-demo-cta-copy { flex: 1; min-width: 260px; display: grid; gap: var(--it-sp-2); }
+
+.it-demo-cta-text {
+  margin: 0;
+  color: var(--it-ink-soft);
+  max-width: 62ch;
+}
+
+.it-demo-cta-btn { white-space: normal; text-align: left; }
+
+/* The pin overlay is a sibling of the viewport, positioned over it. */
+.it-bim-pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* A single 3D pin: a coral/accent glyph + status dot. Real <button> so a
+   genuine pointer (and CDP mouse event) can target it. */
+.it-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--it-font-mono);
+  line-height: 1;
+}
+
+.it-pin-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--it-radius);
+  background: var(--it-state-warn);
+  color: #fff;
+  font-size: 10px;
+  box-shadow: var(--it-shadow-flat);
+}
+
+.it-pin-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--it-state-warn);
+  border: 1px solid #fff;
+}
+
+/* Status colour lives on the pin itself so colour + glyph shape both encode
+   state (never colour alone). */
+.it-pin[data-status="crit"] .it-pin-glyph,
+.it-pin[data-status="crit"] .it-pin-dot { background: var(--it-state-crit); }
+.it-pin[data-status="warn"] .it-pin-glyph,
+.it-pin[data-status="warn"] .it-pin-dot { background: var(--it-state-warn); }
+.it-pin[data-status="ok"] .it-pin-glyph,
+.it-pin[data-status="ok"] .it-pin-dot { background: var(--it-state-ok); }
+.it-pin[data-status="info"] .it-pin-glyph,
+.it-pin[data-status="info"] .it-pin-dot { background: var(--it-state-info); }
+
+/* The deep-linked pin gets a focus outline the keyboard/cursor can see. */
+.it-pin:focus-visible,
+.it-pin.it-pin-focus {
+  outline: 2px solid var(--it-accent);
+  outline-offset: 2px;
+}
+
+.it-pin:focus-visible { border-radius: var(--it-radius); }
+
+/* BIM badge on a pinned issue in the details list. */
+.it-bim-badge {
+  background: var(--it-accent-soft);
+  border-color: var(--it-accent);
+  color: var(--it-accent-deep);
+  text-decoration: none;
+}
+
+.it-bim-badge:hover {
+  background: var(--it-accent);
+  color: var(--it-accent-ink);
+}

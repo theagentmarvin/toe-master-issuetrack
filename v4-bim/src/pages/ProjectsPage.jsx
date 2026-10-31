@@ -10,6 +10,7 @@
      existing register instead of duplicating it          (Exam 2.7/2.8)
    ===================================================================== */
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAppData } from '../state/AppDataProvider'
 import { exportProjects, importProjects } from '../services/projectsService'
 import { fetchTodos } from '../services/todosService'
@@ -180,6 +181,20 @@ export default function ProjectsPage() {
         people and export the whole set as JSON. Registers and issues are stored in Firestore
         and update live.
       </p>
+
+      {/* Wave D — prominent public BIM demo entry, no account needed. */}
+      <div className="it-demo-cta it-scanlines">
+        <div className="it-demo-cta-copy">
+          <span className="it-label">[ BIM VIEWER ]</span>
+          <p className="it-demo-cta-text">
+            Inspect the sample model in 3D — click an element, run the finder, colourise,
+            enhance and pin issues. Straight into the viewport.
+          </p>
+        </div>
+        <Link className="it-btn it-btn-primary it-demo-cta-btn" to="/bim/demo">
+          ◈ OPEN BIM DEMO — NO ACCOUNT NEEDED
+        </Link>
+      </div>
 
       {error ? (
         <div className="it-form-actions">

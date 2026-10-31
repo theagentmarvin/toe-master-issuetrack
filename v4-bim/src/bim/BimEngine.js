@@ -199,17 +199,22 @@ export class BimEngine {
     const rect = canvas.getBoundingClientRect()
     if (rect.width === 0 || rect.height === 0) return
 
-    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-
+    /* The fragments raycaster expects CLIENT-PIXEL coordinates: its
+       internal `screenToCast` does `(p.x - rect.left) …` against the
+       canvas bounding rect, so it converts pixels → NDC itself. Passing
+       a pre-converted NDC vector here sends the ray from a garbage
+       screen position and no geometry is ever hit. */
     let hit = null
     try {
       hit = await this.fragments.raycast({
         camera: this.camera.three,
-        mouse: new THREE.Vector2(x, y),
+        mouse: new THREE.Vector2(event.clientX, event.clientY),
         dom: canvas,
       })
-    } catch {
+    } catch (err) {
+      // Surface (once) instead of swallowing — selection must never fail
+      // silently. A legit miss returns null, not an exception.
+      console.warn('[BimEngine] raycast failed', err)
       hit = null
     }
 

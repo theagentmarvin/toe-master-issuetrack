@@ -36,3 +36,5 @@ Default UX styling = "Chokepoint" design system produced in wave 0. Promote to l
 - SUBMITTED: exams 1+2 form sent successfully ("Your response has been submitted") with community profile https://people.thatopen.com/u/c7737e77, GitHub https://github.com/theagentmarvin/toe-master-issuetrack, app https://marvin-dev-c4ca4.web.app. Wave A CLOSED.
 - Next: Wave B (exam 3, React + Firestore) — needs Firestore enabled on marvin-dev-c4ca4 (confirmed indexes API works).
 - Wave B LAUNCHED: coder (MiniMax-M3) building v3-react/ (exam 3 checklist). Firebase web config for the app: projectId marvin-dev-c4ca4, appId 1:500660140991:web:79628996fe65a8ea96ff0a, authDomain marvin-dev-c4ca4.firebaseapp.com (public client config).
+- Wave B built: v3-react/ (Vite+React18+Firebase). Coder run caf610fa timed out on delivery (second time), but artifacts verified by parent: npm run build OK (2.17s), vite preview :8722 200, fs-probe: projects 3 docs + people 3 docs (seed + rules work). Committed.
+- QA gate for wave B running: qa-marvin run 40e351c2 (deepseek-reasoner) -> orchestration/qa-wave-b.md.

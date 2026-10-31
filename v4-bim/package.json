@@ -1,0 +1,24 @@
+{
+  "name": "issuetrack-v3-react",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "description": "IssueTrack — Wave B (Exam 3): React + Firebase reactive issue tracker",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 8613"
+  },
+  "dependencies": {
+    "@thatopen/components": "^3.6.0",
+    "@thatopen/fragments": "^3.6.0",
+    "firebase": "^10.14.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7"
+  }
+}

@@ -4,7 +4,7 @@
 **Targets:** Exam 3 `https://issuetrack-v3.web.app` · Exam 4 `https://issuetrack-v4.web.app`
 **Method:** own new CDP tab on the managed Chrome (127.0.0.1:18800); real mouse/keyboard Input events; Firestore REST for state assertions. No synthetic `dispatchEvent`.
 
-**VERDICT: _pending_**
+**VERDICT: PASS** (20/20 — see §3)
 
 ---
 
@@ -99,4 +99,55 @@ Source pages (both accessed 2026-10-31, logged-in session, lesson body text):
 
 ## 2. Audit log (item by item)
 
-_(filled in below, incrementally)_
+Live session: own tab, https://issuetrack-v3.web.app (React+Firestore), 2026-10-31 ~16:05–16:20 GMT-3.
+Domain mapping per EXAM-SPEC.md: *projects → registers*, *ToDos → issues*.
+Firestore state read through the deployed app's own SDK config (REST, project `marvin-dev-c4ca4`). All test writes in REG-002 (plus one temporary register, deleted); baseline restored at the end.
+
+### Exam 3 — https://issuetrack-v3.web.app
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| E3-1 | **PASS** (live + code) | Dedicated `components/ProjectsForm.jsx` (268 lines, own file, props `mode/project/people/onSaved`). Live: separate "NEW REGISTER" form on index and "EDIT REGISTER INFO" form on detail page, both rendered by it. Code: `pages/ProjectsPage.jsx:229-240`, `pages/ProjectDetailsPage.jsx:106-121`. |
+| E3-2 | **PASS** (live, Firestore-verified) | Filled the create form via real input events (name `QA-AUDIT-REG`, code `QA-9`, site, description, empty date → defaulted 31/10/2026), clicked CREATE REGISTER: card appeared immediately (4 REGISTERS) **and** Firestore doc `projects/CYzLTYq2osEzPCJYgzNQ` = `QA-AUDIT-REG`. Temp register deleted afterwards (see cleanup). |
+| E3-3 | **PASS** (live, Firestore-verified) | ✎ EDIT on that card opened the same component pre-filled; changed name to `QA-AUDIT-REG2`, clicked SAVE CHANGES → Firestore doc `CYz…` name became `QA-AUDIT-REG2` (REST GET 200). |
+| E3-4 | **PASS** (live) | Component reused in two hosts: index page (create + inline edit section) and register detail page ("EDIT REGISTER INFO"). Both observed open and functional. |
+| E3-5 | **PASS** (live) | `components/ProjectTasksList.jsx` renders the task list on the detail page: REG-001 showed 4 issue cards under `[ ISSUES ]` (3 after cleanup), REG-002 2 cards. |
+| E3-6 | **PASS** (live, computed styles) | Every card shows both a status chip and a priority chip. Distinct colors measured: CRITICAL `#F0561E` on white, HIGH `#B26A1B` on `#F6E7D2`, MEDIUM `#6E6D67` on `#ECEBE6`, LOW (same family as MEDIUM, distinct label), BLOCKED `#F0561E` on white, IN PROGRESS `#B26A1B` on `#F6E7D2`, DONE `#4A7A4E` on `#E4EEE2`, OPEN grey. Priority and status palettes are separate classes (`it-chip-prio-*` vs `it-chip-warn/ok/crit`). |
+| E3-7 | **PASS** (live) | `<SearchBox>` sits inside the tasks list (`SEARCH ISSUES / FILTERS THE CARDS BELOW`). Typed `rebar` with real key events into the list's search input: priority chips went 4 → 1 (only "Rebar inspection overdue on core B"); Ctrl+A/Backspace restored 4. |
+| E3-8 | **PASS** (live, Firestore-verified) | `+ NEW ISSUE` opened `TodoForm`; created `QA-AUDIT-TODO` in REG-002 → card appeared in DOM immediately **and** Firestore `projects/REG-002/todos/j5p0GvmLNJsGfFXPdjbr` (title/status open/priority MEDIUM). |
+| E3-9 | **PASS** (live, Firestore-verified) | ✎ EDIT on that card opened the same form pre-filled; renamed to `QA-AUDIT-TODO-EDITED`, clicked SAVE ISSUE → Firestore doc title = `QA-AUDIT-TODO-EDITED` (REST 200). |
+| E3-10 | **PASS** (Firestore REST) | ToDos live in subcollections `projects/{REG-001,REG-002,REG-003}/todos` in project `marvin-dev-c4ca4`; verified 3/2/2 documents with title/status/priority fields. Source: `services/todosService.js` (addDoc/setDoc/onSnapshot on that subcollection). |
+| E3-11 | **PASS** (live) | Hard reload (`Page.reload`, ignoreCache) of `/project/REG-002` while the temp todo existed: card still rendered, i.e. re-fetched from Firestore (app has no localStorage/IndexedDB persistence for todos). |
+| E3-12 | **PASS** (deployed) | https://issuetrack-v3.web.app serves HTTP 200, public, no auth wall; index + deep links work (Firebase Hosting rewrites). |
+
+Exam 3 cleanup (verified end state): projects = 3 (Tower North / Depot West / Pier Annex); REG-001 todos = 3; REG-002 todos = 2; temp register and temp todo both deleted (UI/REST), reload shows 2 cards in REG-002 and no `QA-AUDIT` text anywhere.
+
+### Exam 4 — https://issuetrack-v4.web.app
+
+Live session: own tab, https://issuetrack-v4.web.app/bim/REG-001 (then /bim/REG-002 for the Firestore-backed view test), 2026-10-31 ~16:07–16:40 GMT-3. `window.__bimEngine` present and used for state evidence only; all actions via real mouse/keyboard Input events. Note: the shared Chrome died mid-run (debug port refused, restarted as Chrome 156), and the box was under load average 60–145, so a second page load never reached `MODEL READY` (property-set dropdown stayed at `ALL`); that is called out per item.
+
+| ID | Verdict | Evidence |
+|----|---------|----------|
+| E4-1 | **PASS** (live UI + live query; specific-pset filter code-verified) | `[ ITEMS FINDER ]` panel live with Property set / Property / Value / Query name and a FIND button. On first load the pset dropdown was populated with the real model sets (Pset_BeamCommon, Pset_SlabCommon, Pset_VDC, …) and properties changed per set. Typed value `Fundaciones` with real key events and clicked FIND → `21 ITEM(S) MATCH` chip, items highlighted in viewport. The pset/property → query mapping (pset `Name`, property `Name`, `NominalValue`) is implemented at `bim/finder.js:19-59` (`psetQuery.attributes … exactMatcher(psetName)`). Could not re-run a *specific-pset* query after the Chrome restart because the reloaded page never reached MODEL READY under load (dropdown reverted to `ALL`); the filter logic is therefore code-verified, not re-exercised. |
+| E4-2 | **PASS** (live round-trip) | Two buttons in the panel: `↧ DOWNLOAD QUERIES` and `↥ UPLOAD QUERIES` (hidden file input). Ran a named finder query (`QA-AUDIT-Q`, value `Fundaciones`) → stored query appears; DOWNLOAD produced `~/Downloads/issuetrack-queries.json` (ItemsFinder.export shape: `{data:[{guid,name,customData,queries:[…]}]}`, status `QUERIES EXPORTED`). Reloaded the page (in-memory queries gone, `STORED QUERIES` absent), uploaded the same file via the real file input → `QUERIES IMPORTED — 1 TOTAL`, `QA-AUDIT-Q` back in STORED QUERIES with RUN/✕. Code: `components/ItemsFinderPanel.jsx:132-146`, engine `exportQueries/importQueries` used in `pages/BimPage.jsx`. |
+| E4-3 | **PASS** (live) | Clicked the model canvas (real mouse) → IFCSLAB localId 5581 selected. `[ COLOURS PALETTE ]` then showed 8 predefined swatches (`CRITICAL #F0561E`, `WARNING #B26A1B`, `DONE #4A7A4E`, `NEUTRAL #6E6D67`, `INK #1B1B19`, `STEEL #3D6087`, `VIOLET #6B5B95`, `TEAL #2F6E6B`). Clicked TEAL → `1 ITEM(S) COLOURED`, engine state `colorizations=[{modelId:'sample',localId:5581,color:'#2F6E6B'}]`. Palette defined at `bim/palette.js:15-24`. |
+| E4-4 | **PASS** (live) | `[ DATA ENHANCER ]` with a shared-property select and `⊕ FIND SAME INFO`. With the slab selected clicked the button → status `36 ITEM(S) SHARE THIS`, `engine.finderCount() === 36`, viewport highlights the 36 siblings. Method `enhance(model, source, opts)` returns the set of all localIds with the same property value (`bim/DataEnhancer.js:45-60`; signature picker `:62-90`). |
+| E4-5 | **PASS** (live round-trip) | Captured view `QA-AUDIT-VIEW`, clicked the per-view `↧` → `VIEW EXPORTED`, file `~/Downloads/issuetrack-view-qa-audit-view.json` containing the *definition* (`{id,name,createdAt,updatedAt,finderQuery:{data:[]},colorizations:[]}`), no image. Then used `↥ IMPORT VIEW` with that file → `VIEW IMPORTED — QA-AUDIT-VIEW`, view re-appeared in the table. Methods: `SmartViews.export()` `bim/SmartViews.js:50-52`, `SmartViews.import()` `:58-61`, `deserialize()` `:63-76`; UI buttons `components/SmartViewsPanel.jsx:104-116`. |
+| E4-6 | **PASS** (live, Firestore-verified) | Capture wrote `projects/REG-002/smartViews/714b3e2e-f5f5-487b-8406-329859d254db` (fields name/finderQuery/colorizations/timestamps) — REST GET 200. Hard reload of `/bim/REG-002` → table showed `STORED VIEWS (2)` including `QA-AUDIT-VIEW` before any user action, i.e. loaded from Firestore on project open. Subscription at `pages/BimPage.jsx:252-259`; service `services/smartViewsService.js` (`projects/{projectId}/smartViews/{viewId}`). |
+| E4-7 | **PASS** (live, Firestore-verified) | Per-view `↻ UPDATE` button present in the table. Clicked it on `QA-AUDIT-VIEW` → status `VIEW UPDATED — QA-AUDIT-VIEW` and Firestore `updatedAt` moved `19:23:53.906Z` → `19:24:14.598Z` (re-captured from current in-session state). Handler `handleUpdateView` re-captures finder query + colorisations: `pages/BimPage.jsx:461-478`. |
+| E4-8 | **PASS** (deployed) | https://issuetrack-v4.web.app serves HTTP 200, public; `/bim/REG-001` and `/bim/REG-002` deep links load the viewer, IFC `sample.ifc` fetched, model selectable. |
+
+Exam 4 cleanup (verified end state): REG-001 smartViews = 0, REG-002 smartViews = 0 (test view `QA-AUDIT-VIEW` deleted via REST; a pre-existing `FIX-VIEW` doc left by the earlier dead audit attempt also removed to restore the stated baseline); REG-001 todos = 3, REG-002 todos = 2 (untouched by the BIM audit). Download artifacts created by this run removed from `~/Downloads`.
+
+### Notes / caveats
+
+- Exam 3 and Exam 4 were audited on the **live** deployments, not local builds. `v3-react/src` and `v4-bim/src` were read only as supporting evidence.
+- One defect of the *loading* path surfaced under machine load: after the Chrome restart the v4 page sat at `LOADING IFC MODEL…` indefinitely (model was in `engine.fragments`, selection/colour/enhancer still worked, but `MODEL READY` never fired and the Items Finder property-set dropdown stayed at `ALL`). It did not reproduce in the first v4 load of this audit; flagged as flaky readiness, not scored against any requirement.
+- Shared Chrome crashed once (port 18800 refused, browser restarted v155→v156); all audit tabs were mine and were closed at the end.
+
+## 3. Verdict
+
+All 20 official checklist items are present and functional on the live deployments.
+
+**VERDICT: PASS** — 20/20 PASS (verified live: 19; code-verified only: 1 — E4-1 specific-pset filter path; unverified: 0).
+

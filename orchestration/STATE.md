@@ -30,3 +30,6 @@ Default UX styling = "Chokepoint" design system produced in wave 0. Promote to l
 - QA gate spawned: qa-marvin run 2b7750fd (deepseek-reasoner), report target orchestration/qa-wave-a.md. Browser smoke test abandoned (screenshot timed out twice; static HTTP checks already green). Local test server left running on :8611.
 - QA VERDICT: PASS — 13/13 checklist items, 0 blocking, 6 non-blocking defects (report: orchestration/qa-wave-a.md; store 18/18, browser 43/43 suites by QA). Fix round dispatched to kept coder session (run f2d627cc): import merge non-destructive + import validation, edit-status visibility, 3-digit IDs, dead label, title scale + off-token color. After fix: re-verify, then Firebase deploy (marvin-dev-c4ca4) + combined exam 1+2 form submission.
 
+- FIX ROUND DONE (coder run f2d627cc): all 6 QA defects fixed + verified (node --check clean, 60 store assertions, Chrome CDP pass). Committed 7d37f16.
+- DEPLOYED: Firebase Hosting https://marvin-dev-c4ca4.web.app — all 3 pages + assets 200 (cleanUrls 301s resolve).
+- Submission form found: https://thatopen.notion.site/3b1e915dff1e80eb9d0bfdd3276f4298 — fields: Community Profile URL, Modules (checkboxes), GitHub Repository URL, Deployed App URL, comments.
